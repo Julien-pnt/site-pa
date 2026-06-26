@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Security hardening (defense-in-depth) — no inline scripts, so script-src stays strict.
+     'unsafe-inline' is required only for style because the markup uses inline style="" attributes. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com 'self'; img-src 'self' data:; connect-src 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d1117">
+<meta name="description" content="Manuel de révision interne LSPD (GTA RP) : grades & insignes, tenues, codes pénaux et radio, droits Miranda, procédures d'arrestation, traffic & felony stop, divisions et quiz.">
+<title>LSPD — Manuel de Révision · Field Duty Terminal</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="256x256" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Teko:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ===== GLOBAL SVG DEFS (shared gradients & filters) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gFab" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a4068"/><stop offset=".5" stop-color="#1a2744"/><stop offset="1" stop-color="#101a2c"/>
+    </linearGradient>
+    <linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4e29a"/><stop offset=".45" stop-color="#c9a84c"/><stop offset="1" stop-color="#8a6e28"/>
+    </linearGradient>
+    <linearGradient id="gGoldH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8a6e28"/><stop offset=".5" stop-color="#f4e29a"/><stop offset="1" stop-color="#8a6e28"/>
+    </linearGradient>
+    <linearGradient id="gSilver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6f6f6"/><stop offset=".5" stop-color="#c0c0c0"/><stop offset="1" stop-color="#7f7f7f"/>
+    </linearGradient>
+    <linearGradient id="gWood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a9743f"/><stop offset="1" stop-color="#6b4427"/>
+    </linearGradient>
+    <radialGradient id="gDark" cx="50%" cy="42%" r="62%">
+      <stop offset="0" stop-color="#16243f"/><stop offset="1" stop-color="#0d1117"/>
+    </radialGradient>
+    <linearGradient id="gCream" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf2da"/><stop offset="1" stop-color="#ecd9ad"/>
+    </linearGradient>
+    <linearGradient id="gWin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3c4"/><stop offset="1" stop-color="#ffd54a"/>
+    </linearGradient>
+    <filter id="ds" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity=".55"/>
+    </filter>
+    <filter id="dsSoft" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000" flood-opacity=".5"/>
+    </filter>
+    <filter id="glowBlue" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- traffic-stop assets -->
+    <pattern id="hatchRed" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="rgba(220,38,38,.12)"/>
+      <line x1="0" y1="0" x2="0" y2="9" stroke="#dc2626" stroke-width="2" opacity=".55"/>
+    </pattern>
+    <linearGradient id="gCop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#27406a"/><stop offset="1" stop-color="#13203a"/></linearGradient>
+    <linearGradient id="gCiv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c4453"/><stop offset="1" stop-color="#262b36"/></linearGradient>
+    <marker id="arrGn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2fb96b"/></marker>
+    <marker id="arrRd" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#e23c3c"/></marker>
+    <marker id="arrCv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6f86a0"/></marker>
+  </defs>
+</svg>
+
+<!-- ===== TOPBAR ===== -->
+<header class="topbar">
+  <div class="bar-hazard"></div>
+  <div class="wrap">
+    <div class="brand">
+      <svg class="shield" viewBox="0 0 100 116" aria-label="LSPD shield">
+        <path d="M50 4 L92 18 V58 C92 86 72 104 50 112 C28 104 8 86 8 58 V18 Z"
+              fill="url(#gFab)" stroke="url(#gGold)" stroke-width="3"/>
+        <path d="M50 12 L85 23 V57 C85 81 68 96 50 103 C32 96 15 81 15 57 V23 Z"
+              fill="none" stroke="rgba(201,168,76,.45)" stroke-width="1.4"/>
+        <path d="M50 30 l5.6 11.4 12.6 1.8 -9.1 8.9 2.2 12.5 -11.3 -5.9 -11.3 5.9 2.2 -12.5 -9.1 -8.9 12.6 -1.8 Z"
+              fill="url(#gGold)" stroke="#7d6325" stroke-width=".7"/>
+        <text x="50" y="86" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="15" letter-spacing="1.5" fill="url(#gGold)">LSPD</text>
+      </svg>
+      <div>
+        <h1>LOS SANTOS <b>POLICE</b> DEPT.</h1>
+        <div class="sub">Manuel de Révision · Field Duty Terminal</div>
+      </div>
+      <div class="status"><span class="dot"></span>UNIT&nbsp;ON&nbsp;DUTY · GTA&nbsp;RP</div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Sections du manuel">
+      <button class="tab active" data-target="grades">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l7-5 7 5v6l-7 5-7-5z"/><path d="M9 13l2 2 4-4"/></svg>Grades</button>
+      <button class="tab" data-target="tenues">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3l4 3 4-3 5 4-3 3v11H6V10L3 7z"/></svg>Tenues</button>
+      <button class="tab" data-target="penal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l8-8 4 4-8 8z"/><path d="M14 7l4 4"/><path d="M13 21h8"/></svg>Codes Pénaux</button>
+      <button class="tab" data-target="radio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="9" width="10" height="12" rx="2"/><path d="M14 9l4-5"/><path d="M19 9a3 3 0 013 3"/></svg>Codes Radio</button>
+      <button class="tab" data-target="miranda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Miranda</button>
+      <button class="tab" data-target="procedures">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/></svg>Procédures</button>
+      <button class="tab" data-target="trafficstop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 11l1.5-5h11L19 11"/><rect x="3" y="11" width="18" height="7" rx="2"/><circle cx="7.5" cy="18" r="1.4"/><circle cx="16.5" cy="18" r="1.4"/><path d="M12 2v3"/></svg>Traffic Stop</button>
+      <button class="tab" data-target="divisions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Divisions</button>
+      <button class="tab" data-target="quiz">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 115 .5c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>Quiz</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ================= GRADES ================= -->
+  <section class="panel active" id="grades">
+    <div class="sec-head">
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <rect x="30" y="14" width="60" height="92" rx="10" fill="url(#gFab)" stroke="url(#gGold)" stroke-width="2" filter="url(#dsSoft)"/>
+        <path d="M40 44 L60 56 L80 44" fill="none" stroke="url(#gGold)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M40 58 L60 70 L80 58" fill="none" stroke="url(#gGold)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M40 72 L60 84 L80 72" fill="none" stroke="url(#gGold)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">Hiérarchie · Insignes officiels</div>
+        <h2>Grades & <span>Insignes</span></h2>
+        <p>Insignes officiels du LSPD : chevrons brodés (terrain &amp; investigation), barres argentées (command staff) et étoiles (direction). Survole un insigne, <b>clique</b> pour zoomer en plein écran.</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <div class="group-label">Terrain <small>// Chevrons brodés ^ &amp; rockers</small></div>
+    <div class="grade-grid" data-cat="terrain"></div>
+
+    <div class="callout">
+      <span class="ic">🔑</span>
+      <div>
+        <h4>Qu'est-ce que le First Lincoln (FL) ?</h4>
+        <p>Le <b>First Lincoln</b> est le premier leadership exercé de manière <b>autonome</b> sur le terrain. Il est <b>obligatoire pour l'Officier II</b> afin de progresser au grade supérieur, et doit être <b>validé par la supervision</b>.</p>
+      </div>
+    </div>
+
+    <div class="group-label">Investigation <small>// Detective Bureau — mêmes galons</small></div>
+    <div class="grade-grid" data-cat="investigation"></div>
+
+    <div class="group-label">Command Staff <small>// Barres argentées</small></div>
+    <div class="grade-grid" data-cat="command"></div>
+
+    <div class="group-label">Direction <small>// Étoiles argent — 1 à 4</small></div>
+    <div class="grade-grid" data-cat="direction"></div>
+
+    <div class="group-label">Fonctions <small>// Rôles opérationnels — non-grades</small></div>
+    <div class="grade-grid" data-cat="fonctions"></div>
+
+    <!-- ===== ANCIENNETÉ ===== -->
+    <div class="subhead">Ancienneté <span class="tag">1 barre = 5 ans</span></div>
+    <div class="callout">
+      <span class="ic">📏</span>
+      <div><h4>Règle d'ancienneté</h4><p>L'ancienneté est <b>fondamentale</b> dans le LSPD : <b>une barre de galon dorée équivaut à 5 ans de service</b>. Elle se cumule indépendamment du grade.</p></div>
+    </div>
+    <div class="seniority">
+      <div class="sen-item">
+        <svg viewBox="0 0 110 46"><rect x="15" y="20" width="80" height="6" rx="3" fill="url(#gGoldH)" stroke="#7d6325" stroke-width=".6"/></svg>
+        <div class="yr">5</div><div class="lbl">ans · 1 barre</div>
+      </div>
+      <div class="sen-item">
+        <svg viewBox="0 0 110 46"><rect x="15" y="15" width="80" height="6" rx="3" fill="url(#gGoldH)" stroke="#7d6325" stroke-width=".6"/><rect x="15" y="25" width="80" height="6" rx="3" fill="url(#gGoldH)" stroke="#7d6325" stroke-width=".6"/></svg>
+        <div class="yr">10</div><div class="lbl">ans · 2 barres</div>
+      </div>
+      <div class="sen-item">
+        <svg viewBox="0 0 110 46"><rect x="15" y="11" width="80" height="6" rx="3" fill="url(#gGoldH)" stroke="#7d6325" stroke-width=".6"/><rect x="15" y="21" width="80" height="6" rx="3" fill="url(#gGoldH)" stroke="#7d6325" stroke-width=".6"/><rect x="15" y="31" width="80" height="6" rx="3" fill="url(#gGoldH)" stroke="#7d6325" stroke-width=".6"/></svg>
+        <div class="yr">15</div><div class="lbl">ans · 3 barres</div>
+      </div>
+    </div>
+
+    <!-- ===== PROTOCOLE INTERNE & COMMUNICATION ===== -->
+    <div class="subhead">Protocole Interne <span class="tag">Chaîne de commandement</span></div>
+
+    <div class="org-wrap">
+      <svg viewBox="0 0 240 200" aria-label="Chaîne de communication">
+        <defs>
+          <marker id="arrG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2fb96b"/></marker>
+          <marker id="arrR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#dc2626"/></marker>
+        </defs>
+        <g font-family="Oswald" font-weight="600" font-size="12" letter-spacing="1">
+          <rect x="50" y="14" width="140" height="34" rx="8" fill="#1a2744" stroke="url(#gGold)" stroke-width="1.5"/>
+          <text x="120" y="35" text-anchor="middle" fill="#e8e8e8">Officier III (TO)</text>
+          <rect x="50" y="83" width="140" height="34" rx="8" fill="#1a2744" stroke="url(#gGold)" stroke-width="1.5"/>
+          <text x="120" y="104" text-anchor="middle" fill="#e8e8e8">Officier II</text>
+          <rect x="50" y="152" width="140" height="34" rx="8" fill="#1a2744" stroke="url(#gGold)" stroke-width="1.5"/>
+          <text x="120" y="173" text-anchor="middle" fill="#e8e8e8">Officier I</text>
+        </g>
+        <!-- authorised up the chain -->
+        <path d="M95 152 L95 117" stroke="#2fb96b" stroke-width="3" marker-end="url(#arrG)"/>
+        <path d="M95 83 L95 48" stroke="#2fb96b" stroke-width="3" marker-end="url(#arrG)"/>
+        <!-- forbidden skip (I -> III direct) -->
+        <path d="M150 158 C205 120 205 80 150 44" fill="none" stroke="#dc2626" stroke-width="3" stroke-dasharray="6 5" marker-end="url(#arrR)"/>
+        <text x="207" y="103" text-anchor="middle" font-family="JetBrains Mono" font-size="14" fill="#dc2626">✕</text>
+      </svg>
+      <div class="illu-cap">Chaîne de commandement — <span style="color:#2fb96b">vert = autorisé</span> · <span style="color:#dc2626">rouge = saut d'échelon interdit</span></div>
+    </div>
+
+    <div class="proto-grid">
+      <div class="proto-card">
+        <div class="ph"><span class="pic">📡</span><h4>Communication radio</h4></div>
+        <div class="proto-illu">
+          <svg viewBox="0 0 120 80"><rect x="46" y="14" width="6" height="20" rx="3" fill="#2a2f36"/><rect x="34" y="30" width="34" height="44" rx="7" fill="#1c2026" stroke="#3a4049" stroke-width="1.4"/><g stroke="#4a525c" stroke-width="2"><path d="M40 40h22"/><path d="M40 46h22"/><path d="M40 52h22"/></g><text x="51" y="68" text-anchor="middle" font-family="JetBrains Mono" font-weight="800" font-size="11" fill="#c9a84c">#</text><g fill="none" stroke="#4fc3f7" stroke-width="2.4" stroke-linecap="round"><path d="M74 40a12 12 0 010 18" opacity=".9"/><path d="M82 34a22 22 0 010 30" opacity=".5"/></g></svg>
+        </div>
+        <p>Le <b>matricule</b> est réservé aux communications <b>RADIO uniquement</b>.</p>
+      </div>
+      <div class="proto-card">
+        <div class="ph"><span class="pic">👔</span><h4>Vouvoiement</h4></div>
+        <div class="proto-illu">
+          <svg viewBox="0 0 120 80"><g fill="#1a2744" stroke="#c9a84c" stroke-width="1.2"><circle cx="26" cy="34" r="11"/><path d="M11 70 q15 -22 30 0 Z"/></g><g fill="#16243f" stroke="#c9a84c" stroke-width="1.2"><circle cx="94" cy="34" r="11"/><path d="M79 70 q15 -22 30 0 Z"/></g><path d="M44 30 h32 v16 h-12 l-5 6 v-6 h-15 z" fill="#0d1117" stroke="#4fc3f7" stroke-width="1.2"/><text x="60" y="42" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#4fc3f7">…</text></svg>
+        </div>
+        <p>Tutoiement <b>INTERDIT</b> avec les supérieurs. Vouvoiement + grade obligatoire.</p>
+        <div class="dialog">
+          <span class="bubble bad">❌ « Salut chef »</span>
+          <span class="bubble good">✅ « Bonjour Sergent »</span>
+        </div>
+      </div>
+      <div class="proto-card">
+        <div class="ph"><span class="pic">📋</span><h4>Chaîne hiérarchique</h4></div>
+        <div class="proto-illu">
+          <svg viewBox="0 0 120 80"><g fill="#16243f" stroke="#c9a84c" stroke-width="1.2"><rect x="14" y="58" width="28" height="14"/><rect x="42" y="44" width="28" height="28"/><rect x="70" y="30" width="28" height="42"/></g><g fill="#c9a84c"><circle cx="28" cy="52" r="4"/><circle cx="56" cy="38" r="4"/><circle cx="84" cy="24" r="4"/></g><path d="M34 50 L50 38" stroke="#2fb96b" stroke-width="2.2" marker-end="url(#arrG)"/><path d="M62 36 L78 24" stroke="#2fb96b" stroke-width="2.2" marker-end="url(#arrG)"/></svg>
+        </div>
+        <p>Un Officier I adresse ses questions à un <b>Officier II</b> (de préférence son TO référent). <b>Ne pas sauter les échelons.</b></p>
+      </div>
+      <div class="proto-card">
+        <div class="ph"><span class="pic">⭐</span><h4>Ancienneté</h4></div>
+        <div class="proto-illu">
+          <svg viewBox="0 0 120 80"><rect x="38" y="8" width="44" height="64" rx="7" fill="url(#gFab)" stroke="#0a1220" stroke-width="1.5"/><rect x="46" y="24" width="28" height="5" rx="2.5" fill="url(#gGoldH)"/><rect x="46" y="36" width="28" height="5" rx="2.5" fill="url(#gGoldH)"/><rect x="46" y="48" width="28" height="5" rx="2.5" fill="url(#gGoldH)"/></svg>
+        </div>
+        <p><b>1 barre de galon dorée = 5 ans de service.</b> Repères : 5 / 10 / 15 ans.</p>
+      </div>
+    </div>
+
+    <!-- ===== PLANCHE OFFICIELLE ===== -->
+    <div class="subhead">Planche officielle des insignes <span class="tag">Source LSPD</span></div>
+    <div class="planche">
+      <figure><img src="assets/grades/grade2.png" alt="Insignes terrain &amp; investigation — chevrons" width="555" height="712" loading="lazy" decoding="async"><figcaption>Terrain &amp; Investigation — chevrons</figcaption></figure>
+      <figure><img src="assets/grades/grade1.png" alt="Insignes command staff &amp; direction — barres &amp; étoiles" width="549" height="704" loading="lazy" decoding="async"><figcaption>Command Staff &amp; Direction — barres &amp; étoiles</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- ================= TENUES ================= -->
+  <section class="panel" id="tenues">
+    <div class="sec-head">
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <path d="M44 24 l16 10 16-10 22 16 -12 14 v40 H34 V54 L22 40z" fill="url(#gFab)" stroke="url(#gGold)" stroke-width="2" filter="url(#dsSoft)"/>
+        <path d="M60 34 v60" stroke="rgba(201,168,76,.5)" stroke-width="1.5"/>
+        <circle cx="60" cy="56" r="2.4" fill="url(#gGold)"/><circle cx="60" cy="70" r="2.4" fill="url(#gGold)"/><circle cx="60" cy="84" r="2.4" fill="url(#gGold)"/>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">Uniformes réglementaires</div>
+        <h2>Tenues & <span>Apparence</span></h2>
+        <p>Quatre classes d'uniforme, leur attribution par grade, et les règles d'apparence en vigueur sur le terrain.</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="tenue-grid" id="tenueGrid"></div>
+
+    <div class="info-grid">
+      <div class="info-box">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2"><path d="M5 9l7-5 7 5v6l-7 5-7-5z"/></svg>Attribution par grade</h4>
+        <div class="attr-row"><b>Cadet</b><span>Tenue de formation</span></div>
+        <div class="attr-row"><b>Officier I</b><span>Classe A uniquement</span></div>
+        <div class="attr-row"><b>Officier II</b><span>Classe B &amp; C</span></div>
+        <div class="attr-row"><b>Officier III</b><span>B &amp; C + 2 chevrons (bras G &amp; D)</span></div>
+        <div class="attr-row"><b>SLO</b><span>Toutes classes + étoile sous chevrons</span></div>
+        <div class="attr-row"><b>Command Staff</b><span>Classe A + galons de col</span></div>
+      </div>
+      <div class="info-box">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>Règles d'apparence</h4>
+        <div class="rule"><svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="2"><path d="M5 12l5 5L20 6"/></svg><span><b style="color:#e8e8e8">Tatouages</b> — dissimulés. Avant-bras tatoués → manches longues obligatoires.</span></div>
+        <div class="rule"><svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="2"><path d="M5 12l5 5L20 6"/></svg><span><b style="color:#e8e8e8">Cheveux</b> — au-dessus des épaules, couleurs naturelles uniquement.</span></div>
+        <div class="rule"><svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="2"><path d="M5 12l5 5L20 6"/></svg><span><b style="color:#e8e8e8">Bijoux / Couvre-chef</b> — interdits. Exception : montre sobre.</span></div>
+        <div class="rule"><svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="2"><path d="M5 12l5 5L20 6"/></svg><span><b style="color:#e8e8e8">Lunettes de soleil</b> — autorisées si sobres.</span></div>
+      </div>
+    </div>
+
+    <div class="subhead">Comparaison des manches <span class="tag">Longueur &amp; style</span></div>
+    <div class="compare">
+      <svg viewBox="0 0 360 150" aria-label="Comparaison des manches par classe">
+        <!-- A : longue + cravate -->
+        <g><rect x="30" y="18" width="30" height="80" rx="11" fill="url(#gFab)" stroke="#0a1220" stroke-width="1.2"/>
+          <rect x="42" y="18" width="6" height="22" fill="#0a0e15"/>
+          <rect x="30" y="92" width="30" height="7" rx="3" fill="#101a2c"/>
+          <circle cx="45" cy="110" r="11" fill="#cdb094" stroke="#0a1220" stroke-width="1"/>
+          <text x="45" y="142" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="14" fill="#c9a84c">A</text></g>
+        <!-- B : longue, sans cravate -->
+        <g><rect x="120" y="18" width="30" height="80" rx="11" fill="url(#gFab)" stroke="#0a1220" stroke-width="1.2"/>
+          <path d="M129 18 v10" stroke="#101a2c" stroke-width="1.5"/>
+          <rect x="120" y="92" width="30" height="7" rx="3" fill="#101a2c"/>
+          <circle cx="135" cy="110" r="11" fill="#cdb094" stroke="#0a1220" stroke-width="1"/>
+          <text x="135" y="142" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="14" fill="#c9a84c">B</text></g>
+        <!-- C : courte, avant-bras nu -->
+        <g><rect x="210" y="18" width="30" height="40" rx="11" fill="url(#gFab)" stroke="#0a1220" stroke-width="1.2"/>
+          <rect x="213" y="54" width="24" height="46" rx="10" fill="#cdb094" stroke="#0a1220" stroke-width="1"/>
+          <circle cx="225" cy="110" r="11" fill="#cdb094" stroke="#0a1220" stroke-width="1"/>
+          <text x="225" y="142" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="14" fill="#c9a84c">C</text></g>
+        <!-- Cérémonie : longue + gant blanc + boutons -->
+        <g><rect x="300" y="18" width="30" height="80" rx="11" fill="url(#gFab)" stroke="#0a1220" stroke-width="1.2"/>
+          <circle cx="315" cy="32" r="2.4" fill="url(#gGold)"/><circle cx="315" cy="46" r="2.4" fill="url(#gGold)"/><circle cx="315" cy="60" r="2.4" fill="url(#gGold)"/><circle cx="315" cy="74" r="2.4" fill="url(#gGold)"/>
+          <rect x="300" y="92" width="30" height="7" rx="3" fill="url(#gGoldH)"/>
+          <circle cx="315" cy="110" r="11" fill="#f4f4f4" stroke="#bdbdbd" stroke-width="1"/>
+          <text x="315" y="142" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="13" fill="#c9a84c">Cér.</text></g>
+      </svg>
+      <div class="illu-cap">Longueur et style des manches selon la classe de tenue</div>
+    </div>
+  </section>
+
+  <!-- ================= CODES PENAUX ================= -->
+  <section class="panel" id="penal">
+    <div class="sec-head">
+      <!-- GAVEL 3/4 -->
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="url(#gDark)" stroke="rgba(201,168,76,.25)" stroke-width="1.5"/>
+        <g filter="url(#dsSoft)">
+          <rect x="30" y="84" width="58" height="9" rx="3" fill="url(#gWood)" stroke="#4a2f1a" stroke-width="1"/>
+          <rect x="33" y="80" width="52" height="5" rx="2" fill="#a9743f"/>
+          <g transform="rotate(-32 60 50)">
+            <rect x="44" y="20" width="32" height="26" rx="5" fill="url(#gWood)" stroke="#3f2815" stroke-width="1.4"/>
+            <rect x="46" y="22" width="10" height="22" rx="3" fill="#5a3a20"/>
+            <rect x="56" y="44" width="8" height="34" rx="4" fill="url(#gWood)" stroke="#3f2815" stroke-width="1.2"/>
+            <ellipse cx="60" cy="46" rx="4.5" ry="3" fill="#a9743f"/>
+          </g>
+        </g>
+        <g stroke="url(#gGold)" stroke-width="2.4" stroke-linecap="round" filter="url(#glowBlue)" opacity=".9">
+          <path d="M86 60 l11 -5"/><path d="M88 70 l12 2"/><path d="M80 50 l8 -10"/>
+        </g>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">California Penal Code · Adaptation RP</div>
+        <h2>Codes <span>Pénaux</span></h2>
+        <p>Les infractions à connaître pour qualifier une intervention. Les pastilles <span style="color:var(--blue)">bleues</span> signalent les écarts entre le RP et le droit californien réel.</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="toolbar">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#6f86a0" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input type="text" id="penalSearch" placeholder="Rechercher un code ou une infraction…" aria-label="Rechercher un code pénal ou une infraction">
+      </label>
+      <span class="count" id="penalCount"></span>
+    </div>
+    <div class="code-grid penal-grid" id="penalGrid"></div>
+  </section>
+
+  <!-- ================= CODES RADIO ================= -->
+  <section class="panel" id="radio">
+    <div class="sec-head">
+      <!-- WALKIE-TALKIE -->
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <g filter="url(#dsSoft)">
+          <rect x="74" y="8" width="6" height="26" rx="3" fill="#2a2f36"/>
+          <rect x="38" y="24" width="44" height="84" rx="9" fill="#1c2026" stroke="#3a4049" stroke-width="1.5"/>
+          <rect x="33" y="44" width="8" height="22" rx="4" fill="#15181d" stroke="#3a4049" stroke-width="1"/>
+          <rect x="44" y="30" width="32" height="16" rx="3" fill="#9fb6a0" stroke="#2a2f36" stroke-width="1"/>
+          <text x="60" y="42" text-anchor="middle" font-family="JetBrains Mono" font-weight="800" font-size="9" fill="#1c2b1c">LSPD</text>
+          <g stroke="#4a525c" stroke-width="2" stroke-linecap="round">
+            <path d="M46 54h28"/><path d="M46 60h28"/><path d="M46 66h28"/><path d="M46 72h28"/><path d="M46 78h28"/><path d="M46 84h28"/>
+          </g>
+          <circle cx="50" cy="98" r="3.4" fill="#3a4049"/><circle cx="60" cy="98" r="3.4" fill="#3a4049"/><circle cx="70" cy="98" r="3.4" fill="#3a4049"/>
+        </g>
+        <g fill="none" stroke="#4fc3f7" stroke-width="2.6" stroke-linecap="round" filter="url(#glowBlue)">
+          <path d="M88 50a14 14 0 010 20" opacity=".9"/>
+          <path d="M96 44a24 24 0 010 32" opacity=".55"/>
+          <path d="M104 38a34 34 0 010 44" opacity=".28"/>
+        </g>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">Communication radio · Dispatch</div>
+        <h2>Codes <span>Radio</span></h2>
+        <p>Le langage des ondes. Annonce le bon code pour signaler ta priorité, ta position et tes besoins en renfort.</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="toolbar">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#6f86a0" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input type="text" id="radioSearch" placeholder="Rechercher un code radio…" aria-label="Rechercher un code radio">
+      </label>
+      <span class="count" id="radioCount"></span>
+    </div>
+    <div class="code-grid" id="radioGrid"></div>
+  </section>
+
+  <!-- ================= MIRANDA ================= -->
+  <section class="panel" id="miranda">
+    <div class="sec-head">
+      <!-- PARCHMENT + QUILL -->
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <g transform="rotate(-2 60 60)" filter="url(#dsSoft)">
+          <path d="M22 36 q6 -4 12 0 q6 4 12 0 q6 -4 12 0 q6 4 12 0 q6 -4 12 0 l0 48 q-6 4 -12 0 q-6 -4 -12 0 q-6 4 -12 0 q-6 -4 -12 0 q-6 4 -12 0 Z"
+                fill="url(#gCream)" stroke="#caa86e" stroke-width="1.2"/>
+          <g stroke="#9a8a66" stroke-width="2" stroke-linecap="round" opacity=".7">
+            <path d="M30 48h54"/><path d="M30 56h54"/><path d="M30 64h48"/><path d="M30 72h54"/><path d="M30 80h38"/>
+          </g>
+          <circle cx="76" cy="80" r="7.5" fill="url(#gGold)" stroke="#7d6325" stroke-width="1"/>
+          <text x="76" y="82" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="4.6" fill="#2a2110">LSPD</text>
+        </g>
+        <g transform="rotate(45 96 40)">
+          <path d="M96 6 q10 18 0 60 q-9 -42 0 -60Z" fill="#f3ecd8" stroke="#c9bfa3" stroke-width=".8"/>
+          <path d="M96 60 l0 8" stroke="#3a3326" stroke-width="2" stroke-linecap="round"/>
+        </g>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">Constitutional Warning</div>
+        <h2>Droits <span>Miranda</span></h2>
+        <p>À réciter au suspect. Anglais par défaut, espagnol selon l'interlocuteur.</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="miranda-wrap">
+      <div class="miranda-card">
+        <div class="lang"><span class="flag">🇺🇸</span><b>English</b>
+          <button class="play" data-lang="en"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Lire à voix haute</button></div>
+        <p class="miranda-text">"You have the <span class="hl">right to remain silent</span>. Anything you say can and will be used against you in a court of law. You have the <span class="hl">right to an attorney</span>. If you cannot afford an attorney, one will be appointed for you. <span class="hl">Do you understand these rights</span> as they have been read to you?"</p>
+      </div>
+      <div class="miranda-card">
+        <div class="lang"><span class="flag">🇪🇸</span><b>Español</b>
+          <button class="play" data-lang="es"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Leer en voz alta</button></div>
+        <p class="miranda-text">"Tiene el <span class="hl">derecho de guardar silencio</span>. Todo lo que diga puede y será usado en su contra ante un tribunal de justicia. Tiene el <span class="hl">derecho a tener un abogado</span> presente. Si no puede pagar un abogado, se le asignará uno antes del interrogatorio. <span class="hl">¿Entiende estos derechos?</span>"</p>
+      </div>
+    </div>
+    <div class="note-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+      <p><b>Rappel juridique :</b> en droit réel, les droits Miranda se lisent <b>avant l'interrogatoire</b> en garde à vue, et pas obligatoirement au moment précis de l'arrestation. En RP, on les énonce généralement lors du menottage pour rester immersif.</p>
+    </div>
+  </section>
+
+  <!-- ================= PROCEDURES ================= -->
+  <section class="panel" id="procedures">
+    <div class="sec-head">
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <g fill="none" stroke="url(#gSilver)" stroke-width="7" filter="url(#dsSoft)">
+          <circle cx="40" cy="60" r="22"/><circle cx="80" cy="60" r="22"/>
+        </g>
+        <g stroke="#7f7f7f" stroke-width="2"><circle cx="40" cy="60" r="22" fill="none"/><circle cx="80" cy="60" r="22" fill="none"/></g>
+        <g fill="url(#gSilver)" stroke="#6a6a6a" stroke-width="1">
+          <rect x="56" y="56" width="9" height="8" rx="2"/><rect x="55" y="56" width="10" height="8" rx="3" transform="translate(7)"/>
+        </g>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">Field Operations</div>
+        <h2>Procédures <span>Terrain</span></h2>
+        <p>Le déroulé d'une arrestation propre, et l'arrivée au poste (PDP).</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <div class="proc-split">
+      <div class="proc-col">
+        <h3>
+          <!-- HANDCUFFS -->
+          <svg class="proc-illu" viewBox="0 0 120 80">
+            <g filter="url(#dsSoft)">
+              <circle cx="26" cy="40" r="20" fill="none" stroke="url(#gSilver)" stroke-width="8"/>
+              <circle cx="26" cy="40" r="20" fill="none" stroke="#777" stroke-width="1.5"/>
+              <path d="M26 20 a20 20 0 010 40" fill="none" stroke="#e0e0e0" stroke-width="2.5" opacity=".7"/>
+              <g stroke="#8a8a8a" stroke-width="1.2"><path d="M14 28l2 2M12 34l2 1M12 46l2 -1M14 52l2 -2"/></g>
+              <circle cx="94" cy="40" r="20" fill="none" stroke="url(#gSilver)" stroke-width="8"/>
+              <circle cx="94" cy="40" r="20" fill="none" stroke="#777" stroke-width="1.5"/>
+              <path d="M94 20 a20 20 0 000 40" fill="none" stroke="#e0e0e0" stroke-width="2.5" opacity=".7"/>
+              <rect x="40" y="36" width="6" height="8" rx="2" fill="url(#gSilver)" stroke="#6a6a6a"/>
+              <rect x="74" y="36" width="6" height="8" rx="2" fill="url(#gSilver)" stroke="#6a6a6a"/>
+              <g fill="url(#gSilver)" stroke="#6a6a6a" stroke-width=".8">
+                <ellipse cx="51" cy="40" rx="5" ry="3.4"/><ellipse cx="60" cy="40" rx="5" ry="3.4"/>
+                <ellipse cx="69" cy="40" rx="5" ry="3.4"/>
+              </g>
+            </g>
+          </svg>
+          Arrestation
+        </h3>
+        <div class="timeline">
+          <div class="step"><span class="n">1</span><h5>Sécuriser la scène & le suspect</h5><p>Mise en joue et sommations si nécessaire. Neutraliser toute menace avant le contact.</p><span class="pill">Code 4 = sous contrôle</span></div>
+          <div class="step"><span class="n">2</span><h5>Menottage</h5><p>Mains dans le dos, double verrouillage des cliquets.</p></div>
+          <div class="step"><span class="n">3</span><h5>Fouille de sécurité</h5><p>Palpation : armes, objets dangereux, identité.</p></div>
+          <div class="step"><span class="n">4</span><h5>Lecture des droits Miranda</h5><p>Anglais (puis espagnol selon l'interlocuteur). Confirmer la compréhension.</p><span class="pill">Voir onglet Miranda</span></div>
+          <div class="step"><span class="n">5</span><h5>Annonce radio & transport</h5><p>Code 6 sur les lieux, demande de transport, code pénal retenu communiqué au dispatch.</p><span class="pill">Code 6 · RA si blessé</span></div>
+          <div class="step"><span class="n">6</span><h5>Acheminement au poste (PDP)</h5><p>Transport sécurisé du suspect jusqu'au commissariat.</p></div>
+          <div class="step"><span class="n">7</span><h5>Enregistrement & notification</h5><p>Fouille complète, inventaire des effets, lecture des charges et durée de détention.</p></div>
+        </div>
+      </div>
+
+      <div class="proc-col">
+        <h3>
+          <svg class="proc-illu" viewBox="0 0 120 80">
+            <g filter="url(#dsSoft)"><rect x="22" y="28" width="76" height="48" rx="3" fill="url(#gFab)" stroke="url(#gGold)" stroke-width="1.5"/></g>
+          </svg>
+          Poste — PDP
+        </h3>
+        <div class="pdp-card">
+          <!-- POLICE STATION -->
+          <svg class="station" viewBox="0 0 300 220">
+            <!-- gyrophare -->
+            <g filter="url(#glowBlue)">
+              <path d="M134 34 a16 16 0 0132 0 Z" fill="#0d1117" stroke="#2c4470" stroke-width="1"/>
+              <path d="M134 34 a16 16 0 0116 -16 V34 Z" fill="#e23c3c" opacity=".95"/>
+              <path d="M150 18 a16 16 0 0116 16 H150 Z" fill="#4fc3f7" opacity=".95"/>
+            </g>
+            <!-- building -->
+            <g filter="url(#dsSoft)">
+              <rect x="34" y="44" width="232" height="150" rx="4" fill="url(#gFab)" stroke="url(#gGold)" stroke-width="2"/>
+              <!-- fronton sign -->
+              <rect x="34" y="44" width="232" height="30" rx="4" fill="#101a2c" stroke="rgba(201,168,76,.4)" stroke-width="1"/>
+              <text x="150" y="65" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="20" letter-spacing="6" fill="url(#gGoldH)">LSPD</text>
+              <!-- badge engraved above door -->
+              <g transform="translate(150 92)">
+                <circle r="13" fill="#16243f" stroke="url(#gGold)" stroke-width="1.5"/>
+                <path d="M0 -8 l2.3 4.7 5.2 .7 -3.8 3.7 .9 5.2 -4.6 -2.4 -4.6 2.4 .9 -5.2 -3.8 -3.7 5.2 -.7Z" fill="url(#gGold)"/>
+              </g>
+              <!-- windows -->
+              <g>
+                <rect x="58" y="92" width="40" height="46" rx="2" fill="url(#gWin)" stroke="#0d1117" stroke-width="2"/>
+                <rect x="202" y="92" width="40" height="46" rx="2" fill="url(#gWin)" stroke="#0d1117" stroke-width="2"/>
+                <rect x="130" y="116" width="40" height="22" rx="2" fill="url(#gWin)" stroke="#0d1117" stroke-width="2"/>
+                <g stroke="#0d1117" stroke-width="2">
+                  <path d="M78 92v46M58 115h40"/><path d="M222 92v46M202 115h40"/><path d="M150 116v22M130 127h40"/>
+                </g>
+              </g>
+              <!-- columns -->
+              <rect x="112" y="138" width="9" height="44" fill="#101a2c" stroke="rgba(201,168,76,.35)"/>
+              <rect x="179" y="138" width="9" height="44" fill="#101a2c" stroke="rgba(201,168,76,.35)"/>
+              <!-- door -->
+              <rect x="128" y="146" width="44" height="40" rx="2" fill="#0a1220" stroke="url(#gGold)" stroke-width="1.5"/>
+              <path d="M150 146v40" stroke="rgba(201,168,76,.5)" stroke-width="1"/>
+              <!-- steps -->
+              <rect x="116" y="186" width="68" height="6" fill="#1c2c49"/>
+              <rect x="108" y="192" width="84" height="6" fill="#16243f"/>
+              <rect x="100" y="198" width="100" height="7" fill="#101a2c"/>
+            </g>
+          </svg>
+          <div class="legend">
+            <div><i style="background:#ffd54a"></i>Fenêtres éclairées</div>
+            <div><i style="background:#c9a84c"></i>Enseigne & badge gravé</div>
+            <div><i style="background:#e23c3c"></i>Gyrophare rouge</div>
+            <div><i style="background:#4fc3f7"></i>Gyrophare bleu</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PROTOCOLE BLESSÉ + TRAITEMENT PDP ===== -->
+    <div class="proc-extra proc-split">
+      <div class="proc-col">
+        <h3>
+          <svg class="proc-illu" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30" fill="#1a2744" stroke="#dc2626" stroke-width="2.5"/><path d="M40 24 v32 M24 40 h32" stroke="#dc2626" stroke-width="8" stroke-linecap="round"/></svg>
+          Protocole blessé
+        </h3>
+        <div class="timeline">
+          <div class="step"><span class="n">1</span><h5>Sécuriser &amp; évaluer</h5><p>Sécuriser la zone et évaluer l'état du blessé (conscience, hémorragie).</p></div>
+          <div class="step"><span class="n">2</span><h5>Annonce radio Code 3 + RA</h5><p>Demander immédiatement une ambulance / paramedic (RA).</p><span class="pill">Code 3 · RA</span></div>
+          <div class="step"><span class="n">3</span><h5>Premiers soins</h5><p>Maintien en vie et stabilisation jusqu'à l'arrivée des secours.</p></div>
+        </div>
+      </div>
+      <div class="proc-col">
+        <h3>
+          <svg class="proc-illu" viewBox="0 0 80 80"><rect x="20" y="16" width="40" height="48" rx="4" fill="#1a2744" stroke="url(#gGold)" stroke-width="2"/><g stroke="url(#gGold)" stroke-width="2.4" stroke-linecap="round"><path d="M28 28h24"/><path d="M28 36h24"/><path d="M28 44h16"/></g></svg>
+          Traitement au poste (PDP)
+        </h3>
+        <div class="timeline">
+          <div class="step"><span class="n">1</span><h5>Remise au poste</h5><p>Acheminement et remise du suspect au poste (PDP).</p></div>
+          <div class="step"><span class="n">2</span><h5>Fouille complète &amp; inventaire</h5><p>Fouille intégrale, inventaire des effets personnels.</p></div>
+          <div class="step"><span class="n">3</span><h5>Identification &amp; enregistrement</h5><p>Identité, photo, enregistrement au registre.</p></div>
+          <div class="step"><span class="n">4</span><h5>Notification des charges</h5><p>Lecture des codes pénaux retenus et des droits.</p></div>
+          <div class="step"><span class="n">5</span><h5>Durée de détention</h5><p>Détermination du temps de détention selon la qualification.</p></div>
+          <div class="step"><span class="n">6</span><h5>Cellule / superviseur</h5><p>Mise en cellule ou présentation au superviseur si requis.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== C — QUALIFICATION DES INFRACTIONS ===== -->
+    <div class="subhead">Qualification des infractions <span class="tag">Gravité des faits</span></div>
+    <div class="sec-head" style="margin-bottom:18px">
+      <svg class="icon-illustration" viewBox="0 0 180 160" style="width:150px;height:140px">
+        <!-- base -->
+        <path d="M74 150 L106 150 L97 124 L83 124 Z" fill="url(#gGold)" stroke="#7d6325" stroke-width="1"/>
+        <rect x="66" y="148" width="48" height="6" rx="2" fill="url(#gGold)"/>
+        <!-- column -->
+        <rect x="87" y="44" width="6" height="82" fill="url(#gGold)"/>
+        <circle cx="90" cy="44" r="5" fill="url(#gGold)" stroke="#7d6325"/>
+        <!-- beam (tilted: left lower) -->
+        <rect x="28" y="40" width="124" height="5" rx="2.5" fill="url(#gGold)" transform="rotate(4 90 44)"/>
+        <!-- left pan (lower) -->
+        <g stroke="#c9a84c" stroke-width="1.6"><path d="M40 48 L33 92"/><path d="M40 48 L47 92"/></g>
+        <path d="M24 92 a16 7 0 0032 0 Z" fill="#1a2744" stroke="url(#gGold)" stroke-width="1.5"/>
+        <!-- right pan (higher) -->
+        <g stroke="#c9a84c" stroke-width="1.6"><path d="M140 36 L133 76"/><path d="M140 36 L147 76"/></g>
+        <path d="M124 76 a16 7 0 0032 0 Z" fill="#1a2744" stroke="url(#gGold)" stroke-width="1.5"/>
+      </svg>
+      <div class="sec-titles">
+        <p style="margin-top:0">Qualification des infractions selon la gravité des faits. La qualification détermine la procédure, la sanction et la durée de détention.</p>
+      </div>
+    </div>
+
+    <div class="qual-grid">
+      <div class="qual-card" style="--qc:#ca8a04">
+        <div class="qhead">
+          <svg class="qillu" viewBox="0 0 60 60"><rect x="14" y="10" width="32" height="42" rx="2" fill="#f3f3f3" stroke="#cfcfcf"/><g stroke="#b8b8b8" stroke-width="2"><path d="M20 20h20"/><path d="M20 27h20"/><path d="M20 34h14"/></g><g transform="rotate(-18 30 38)"><rect x="20" y="33" width="22" height="11" rx="2" fill="none" stroke="#dc2626" stroke-width="2"/><text x="31" y="42" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="8" fill="#dc2626">PV</text></g></svg>
+          <h4>Contravention</h4>
+        </div>
+        <ul><li>PV uniquement</li><li>Pas d'arrestation</li><li>Amende simple</li></ul>
+        <div class="ex"><b>Ex :</b> stationnement interdit, 415 (ordre public mineur)</div>
+      </div>
+      <div class="qual-card" style="--qc:#ea580c">
+        <div class="qhead">
+          <svg class="qillu" viewBox="0 0 60 60"><rect x="10" y="18" width="40" height="24" rx="2" fill="#bfe7c8" stroke="#7bbf8e" stroke-width="1.2" stroke-dasharray="3 2"/><circle cx="30" cy="30" r="8" fill="none" stroke="#3f8f5a" stroke-width="1.2"/><text x="30" y="35" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="13" fill="#2f7a48">$</text></svg>
+          <h4>Délit mineur</h4>
+        </div>
+        <ul><li>Amende plafonnée</li><li>Jamais $1 000 000</li><li>Garde à vue courte possible</li></ul>
+        <div class="ex"><b>Ex :</b> 148, 240, 417, 480, 502</div>
+      </div>
+      <div class="qual-card" style="--qc:#dc2626">
+        <div class="qhead">
+          <svg class="qillu" viewBox="0 0 60 60"><rect x="10" y="12" width="40" height="38" rx="3" fill="#0d1117" stroke="#3a4049" stroke-width="1.5"/><g stroke="#9aa3ad" stroke-width="3"><path d="M20 14v34"/><path d="M28 14v34"/><path d="M36 14v34"/><path d="M44 14v34"/></g></svg>
+          <h4>Délit majeur / Crime</h4>
+        </div>
+        <ul><li>Procédure pénale complète</li><li>Mise en jugement</li><li>Rapport obligatoire</li></ul>
+        <div class="ex"><b>Ex :</b> 187, 207, 211, 459, 487</div>
+      </div>
+    </div>
+
+    <div class="callout red">
+      <span class="ic">⚠️</span>
+      <div>
+        <h4>Responsabilité de l'officier</h4>
+        <p>Tout officier réalisant une arrestation est responsable du respect <b>intégral</b> de la procédure. Un vice de procédure peut entraîner :</p>
+        <ul><li>L'annulation de toutes les charges</li><li>Des sanctions disciplinaires internes</li><li>La remise en liberté immédiate du suspect</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TRAFFIC STOP ================= -->
+  <section class="panel" id="trafficstop">
+    <div class="sec-head">
+      <!-- mini top-down traffic-stop scene -->
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="url(#gDark)" stroke="rgba(201,168,76,.25)" stroke-width="1.5"/>
+        <!-- controlled vehicle -->
+        <g filter="url(#ds)">
+          <rect x="58" y="18" width="28" height="46" rx="7" fill="url(#gCiv)" stroke="#11151c" stroke-width="1.5"/>
+          <rect x="63" y="32" width="18" height="20" rx="3" fill="#2b3340"/>
+          <rect x="60" y="60" width="6" height="3" rx="1.5" fill="#e23c3c"/><rect x="78" y="60" width="6" height="3" rx="1.5" fill="#e23c3c"/>
+        </g>
+        <!-- dead-zone slash -->
+        <path d="M58 64 L72 60 L75 70 L61 74 Z" fill="url(#hatchRed)" stroke="#dc2626" stroke-width="1" opacity=".9"/>
+        <!-- police vehicle (diagonal) -->
+        <g transform="rotate(-15 44 84)" filter="url(#ds)">
+          <rect x="30" y="62" width="28" height="46" rx="7" fill="url(#gCop)" stroke="#0a1220" stroke-width="1.5"/>
+          <rect x="35" y="76" width="18" height="20" rx="3" fill="#16243f"/>
+          <rect x="36" y="84" width="8" height="5" rx="1.5" fill="#e23c3c"/><rect x="44" y="84" width="8" height="5" rx="1.5" fill="#4fc3f7"/>
+        </g>
+        <!-- officer dot -->
+        <circle cx="52" cy="46" r="4.5" fill="#2fb96b" stroke="#0d1117" stroke-width="1.5"/>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">Field Operations · Vehicle Stop</div>
+        <h2>Traffic <span>Stop</span></h2>
+        <p>Procédure officielle de contrôle routier — inspirée LSPD / LAPD. Positionnement, <b>dead zone</b>, répartition du binôme et déroulé pas à pas, puis la procédure <b>Felony Stop</b> à haut risque.</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- ===== TACTICAL DIAGRAM ===== -->
+    <div class="subhead">Positionnement &amp; Dead Zone <span class="tag">Schéma tactique</span></div>
+    <div class="ts-diagram">
+      <svg viewBox="0 0 480 300" aria-label="Schéma tactique du contrôle routier — positionnement diagonal et dead zone">
+        <rect x="2" y="2" width="476" height="296" rx="16" fill="#0f141d" stroke="rgba(44,68,112,.55)" stroke-width="1.5"/>
+        <!-- road markings -->
+        <g opacity=".5"><line x1="442" y1="12" x2="442" y2="288" stroke="#3a4658" stroke-width="3" stroke-dasharray="14 12"/>
+          <line x1="110" y1="12" x2="110" y2="288" stroke="#2a3342" stroke-width="2" stroke-dasharray="10 14"/></g>
+        <!-- direction of travel -->
+        <g transform="translate(40 40)" stroke="#5f7488" stroke-width="2" fill="none" opacity=".8">
+          <path d="M0 26 V4" marker-end="url(#arrCv)"/><text x="0" y="42" text-anchor="middle" font-family="JetBrains Mono" font-size="8" letter-spacing="1" fill="#5f7488">SENS</text></g>
+
+        <!-- CONTROLLED VEHICLE (facing up) -->
+        <g filter="url(#dsSoft)">
+          <rect x="250" y="60" width="70" height="112" rx="16" fill="url(#gCiv)" stroke="#11151c" stroke-width="2"/>
+          <rect x="258" y="92" width="54" height="50" rx="8" fill="#1b202a"/>
+          <path d="M258 92 q27 -10 54 0 v-5 q-27 -9 -54 0 Z" fill="#2b3340"/>
+          <path d="M258 142 q27 9 54 0 v5 q-27 9 -54 0 Z" fill="#2b3340"/>
+          <rect x="255" y="61" width="12" height="5" rx="2" fill="#fff3c4"/><rect x="303" y="61" width="12" height="5" rx="2" fill="#fff3c4"/>
+          <rect x="255" y="166" width="12" height="5" rx="2" fill="#e23c3c"/><rect x="303" y="166" width="12" height="5" rx="2" fill="#e23c3c"/>
+        </g>
+        <text x="285" y="118" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="9.5" letter-spacing="1.5" fill="#aebfd0">VÉHICULE</text>
+        <text x="285" y="130" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="9.5" letter-spacing="1.5" fill="#aebfd0">CONTRÔLÉ</text>
+
+        <!-- POLICE VEHICLE (diagonal, behind-left) -->
+        <g transform="rotate(-13 184 238)" filter="url(#dsSoft)">
+          <rect x="150" y="182" width="68" height="112" rx="16" fill="url(#gCop)" stroke="#0a1220" stroke-width="2"/>
+          <rect x="158" y="214" width="52" height="50" rx="8" fill="#16243f"/>
+          <path d="M158 214 q26 -10 52 0 v-5 q-26 -9 -52 0 Z" fill="#26324a"/>
+          <path d="M158 264 q26 9 52 0 v5 q-26 9 -52 0 Z" fill="#26324a"/>
+          <rect x="150" y="247" width="68" height="7" fill="#c9a84c" opacity=".45"/>
+          <rect x="166" y="234" width="36" height="9" rx="2.5" fill="#0d1117"/>
+          <rect x="166" y="234" width="18" height="9" rx="2.5" fill="#e23c3c"/><rect x="184" y="234" width="18" height="9" rx="2.5" fill="#4fc3f7"/>
+          <rect x="206" y="183" width="11" height="5" rx="2" fill="#fff3c4"/>
+        </g>
+        <text x="120" y="262" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="9.5" letter-spacing="1.5" fill="#8fb6e6">VÉHICULE</text>
+        <text x="120" y="274" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="9.5" letter-spacing="1.5" fill="#8fb6e6">POLICE</text>
+
+        <!-- DEAD ZONE band (police front-right -> suspect rear-left) -->
+        <polygon points="204,163 257,157 260,183 207,189" fill="url(#hatchRed)" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="4 3"/>
+        <!-- reference points -->
+        <circle cx="205" cy="176" r="4" fill="none" stroke="#e23c3c" stroke-width="2"/><circle cx="205" cy="176" r="1.4" fill="#e23c3c"/>
+        <circle cx="258" cy="170" r="4" fill="none" stroke="#e23c3c" stroke-width="2"/><circle cx="258" cy="170" r="1.4" fill="#e23c3c"/>
+        <text x="232" y="208" text-anchor="middle" font-family="JetBrains Mono" font-weight="800" font-size="9" letter-spacing="1" fill="#ff7373">DEAD ZONE</text>
+        <text x="232" y="219" text-anchor="middle" font-family="JetBrains Mono" font-size="7" letter-spacing=".5" fill="#c98a8a">ne jamais s'y tenir</text>
+        <text x="178" y="150" font-family="JetBrains Mono" font-size="7" fill="#c98a8a">feu AV-D</text>
+        <text x="266" y="150" font-family="JetBrains Mono" font-size="7" fill="#c98a8a">feu AR-G</text>
+
+        <!-- OFFICER 1 — correct position (driver blind spot) + approach -->
+        <path d="M150 230 C 150 152, 206 120, 238 126" fill="none" stroke="#2fb96b" stroke-width="2.4" stroke-dasharray="6 5" marker-end="url(#arrGn)" opacity=".9"/>
+        <circle cx="240" cy="128" r="8" fill="#2fb96b" stroke="#0d1117" stroke-width="1.6"/>
+        <text x="240" y="131.5" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="9" fill="#0d1117">1</text>
+        <text x="222" y="104" text-anchor="end" font-family="JetBrains Mono" font-size="7.5" fill="#9be3b8">angle mort</text>
+        <text x="222" y="113" text-anchor="end" font-family="JetBrains Mono" font-size="7.5" fill="#9be3b8">conducteur</text>
+
+        <!-- OFFICER 2 — cover / MDT -->
+        <circle cx="342" cy="150" r="8" fill="#4fc3f7" stroke="#0d1117" stroke-width="1.6"/>
+        <text x="342" y="153.5" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="9" fill="#0d1117">2</text>
+        <g transform="translate(356 138)" stroke="#4fc3f7" stroke-width="1.5" fill="none"><rect x="0" y="0" width="16" height="11" rx="1.5" fill="#16243f"/><path d="M-2 16 h20 l-2 -5 H0 Z" fill="#16243f"/></g>
+        <text x="358" y="172" font-family="JetBrains Mono" font-size="7.5" fill="#bfe6fb">sécurise / MDT</text>
+
+        <!-- traffic deflection (right lane) -->
+        <path d="M404 286 C 404 210, 432 168, 452 96" fill="none" stroke="#6f86a0" stroke-width="2" stroke-dasharray="5 6" marker-end="url(#arrCv)" opacity=".7"/>
+        <g fill="#3c4453" stroke="#11151c" stroke-width="1"><rect x="396" y="232" width="20" height="34" rx="5"/><rect x="420" y="150" width="20" height="34" rx="5"/></g>
+        <text x="430" y="276" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#8195a8" transform="rotate(-9 430 276)">circulation déportée</text>
+      </svg>
+      <div class="ts-legend">
+        <div><i class="sw" style="background:#2fb96b"></i>Officier 1 — position correcte (angle mort conducteur) &amp; approche</div>
+        <div><i class="sw" style="background:#4fc3f7"></i>Officier 2 — couverture &amp; vérification MDT</div>
+        <div><i class="sw hatch"></i>Dead zone — entre feu AV droit police &amp; feu AR gauche du véhicule</div>
+        <div><i class="sw" style="background:#6f86a0"></i>Circulation forcée de se déporter par le placement en diagonale</div>
+      </div>
+    </div>
+
+    <!-- ===== RESTRICTIONS ===== -->
+    <div class="callout red">
+      <span class="ic">⛔</span>
+      <div>
+        <h4>Restrictions — quand NE PAS faire de contrôle</h4>
+        <p><b>Lieux interdits :</b> autoroute, zone très fréquentée, voie piétonne — trop risqué pour les officiers comme pour les civils.</p>
+        <p style="margin-top:8px"><b>Dead zone :</b> l'espace situé entre le <b>feu avant droit</b> de notre véhicule et le <b>feu arrière gauche</b> du véhicule contrôlé. Ne jamais y stationner ni y circuler — zone d'exposition maximale.</p>
+      </div>
+    </div>
+
+    <!-- ===== ROLES BINOME ===== -->
+    <div class="subhead">Répartition des rôles <span class="tag">Binôme</span></div>
+    <div class="ts-roles">
+      <div class="role-card">
+        <div class="rhead">
+          <svg class="role-ic" viewBox="0 0 60 60"><circle cx="30" cy="30" r="20" fill="none" stroke="#c9a84c" stroke-width="3"/><circle cx="30" cy="30" r="6" fill="#c9a84c"/><path d="M30 24 V11 M25 31 L13 40 M35 31 L47 40" stroke="#c9a84c" stroke-width="3" stroke-linecap="round"/></svg>
+          <div><div class="rtag">Conducteur</div><h4>Officier 1</h4></div>
+        </div>
+        <p>Contrôle et gère le ou les suspects, <b>mène l'interaction</b>. Se positionne à l'angle mort du conducteur et conduit la conversation.</p>
+      </div>
+      <div class="role-card">
+        <div class="rhead">
+          <svg class="role-ic" viewBox="0 0 60 60"><rect x="13" y="15" width="34" height="23" rx="2" fill="#16243f" stroke="#4fc3f7" stroke-width="2"/><path d="M9 44 h42 l-3 -6 H12 Z" fill="#16243f" stroke="#4fc3f7" stroke-width="2"/><path d="M22 26 q8 -7 16 0 q-8 7 -16 0Z" fill="none" stroke="#4fc3f7" stroke-width="1.6"/><circle cx="30" cy="26" r="2.6" fill="#4fc3f7"/></svg>
+          <div><div class="rtag">Passager</div><h4>Officier 2</h4></div>
+        </div>
+        <p><b>Sécurise la scène</b>, surveille les alentours et vérifie les informations sur le <b>MDT</b> : casier, avis de recherche, véhicule volé, validité du permis.</p>
+      </div>
+    </div>
+
+    <!-- ===== STEP-BY-STEP ===== -->
+    <div class="subhead">Procédure pas à pas <span class="tag">12 étapes</span></div>
+    <div class="timeline ts-timeline">
+      <div class="step"><span class="n">1</span><h5>📍 Positionnement</h5><p>Véhicule de police placé <b>en diagonale</b> derrière le véhicule contrôlé. Force la circulation à se déporter et évite les frôlements.</p><span class="pill">Diagonale</span></div>
+      <div class="step"><span class="n">2</span><h5>🚨 Gyrophares + haut-parleur</h5><p>Activer les gyrophares, puis demander au conducteur de <b>couper le moteur</b> et de garder les <b>mains visibles</b>.</p><span class="pill">Code 2</span></div>
+      <div class="step"><span class="n">3</span><h5>📻 Call radio initial</h5><p>Traffic stop + position précise + modèle/plaque + nombre d'occupants. Si la radio est chargée et le contrôle non urgent, un message au dispatcher suffit.</p><span class="pill">Dispatch</span></div>
+      <div class="step"><span class="n">4</span><h5>🚪 Descendre du véhicule</h5><p>Approcher en restant <b>hors de la dead zone</b>.</p><span class="pill">Hors dead zone</span></div>
+      <div class="step"><span class="n">5</span><h5>🧳 Vérification du coffre</h5><p>S'assurer visuellement qu'il est <b>fermé</b> et que personne ne s'y trouve.</p></div>
+      <div class="step"><span class="n">6</span><h5>🫥 Angle mort du conducteur</h5><p>Se placer <b>légèrement derrière la portière</b> : l'officier peut réagir avant d'être atteint tout en restant audible du suspect.</p><span class="pill">Blind spot</span></div>
+      <div class="step"><span class="n">7</span><h5>💬 Entamer la conversation</h5><p>Saluer, se présenter, énoncer <b>clairement le motif</b> du contrôle.</p></div>
+      <div class="step"><span class="n">8</span><h5>🪪 Demande de documents</h5><p>Pièce d'identité + carte grise. L'<b>Officier 2 vérifie en parallèle sur le MDT</b> : casier, avis de recherche, véhicule volé, validité du permis.</p><span class="pill">MDT</span></div>
+      <div class="step"><span class="n">9</span><h5>👥 Gestion des occupants</h5><p>Le conducteur reste dans le véhicule par défaut. Exception : avec plusieurs passagers, seul le conducteur peut être invité à descendre — <b>les passagers restent à bord</b>.</p></div>
+      <div class="step"><span class="n">10</span><h5>🧠 Adapter la posture</h5><p>Selon le comportement, la situation et les infos MDT : coopératif / suspect / <b>wanted</b>.</p><span class="pill">MDT : wanted ?</span></div>
+      <div class="step"><span class="n">11</span><h5>🔚 Fin du contrôle</h5><p>Informer oralement le conducteur qu'il peut repartir, puis <b>attendre qu'il klaxonne</b> avant de partir. Le klaxon signale la reprise en sécurité.</p><span class="pill">Attendre le klaxon</span></div>
+      <div class="step"><span class="n">12</span><h5>✅ Call radio de clôture</h5><p>Situation sous contrôle, retour en patrouille.</p><span class="pill">Code 4</span></div>
+    </div>
+
+    <!-- ===== SANCTIONS ===== -->
+    <div class="callout">
+      <span class="ic">📝</span>
+      <div>
+        <h4>Sanctions &amp; avertissements</h4>
+        <p><b>Avertissement écrit :</b> consigné dans le <b>MDT</b> avec mention orale au conducteur. Il servira de référence lors d'un prochain contrôle de la même personne.</p>
+      </div>
+    </div>
+
+    <!-- ===== HIGH-RISK ===== -->
+    <div class="subhead">Contrôle à risque élevé <span class="tag">High-risk stop</span></div>
+    <div class="proc-split risk-split">
+      <div class="risk-illu-wrap">
+        <svg class="risk-illu" viewBox="0 0 120 120">
+          <path d="M60 16 L106 100 H14 Z" fill="rgba(220,38,38,.12)" stroke="#e23c3c" stroke-width="3.5" stroke-linejoin="round"/>
+          <rect x="56" y="50" width="8" height="28" rx="4" fill="#e23c3c"/><circle cx="60" cy="88" r="4.4" fill="#e23c3c"/>
+          <g fill="none" stroke="#4fc3f7" stroke-width="2.4" stroke-linecap="round" filter="url(#glowBlue)">
+            <path d="M92 34a16 16 0 010 22" opacity=".85"/><path d="M100 28a26 26 0 010 34" opacity=".5"/></g>
+          <text x="60" y="116" text-anchor="middle" font-family="JetBrains Mono" font-weight="800" font-size="10" letter-spacing="3" fill="#e23c3c">BOLO</text>
+        </svg>
+      </div>
+      <div class="risk-body">
+        <div class="callout red" style="margin:0">
+          <span class="ic">⚠️</span>
+          <div>
+            <h4>Si le contrôle devient dangereux</h4>
+            <p>Suspect armé, véhicule recherché, comportement hostile :</p>
+            <ul>
+              <li><b>Call radio prioritaire immédiat</b> et demande de <b>backup</b>.</li>
+              <li><b>Ne pas s'approcher seul.</b></li>
+              <li>En cas de perte visuelle d'un fuyard : annoncer un <b>Code 4 Adam</b> et lancer immédiatement un <b>BOLO</b> (description du suspect ou du véhicule).</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ts-codestrip">
+          <span class="csr"><b>Code 2</b> Positionnement</span>
+          <span class="csr"><b>Code 3</b> Poursuite / urgence</span>
+          <span class="csr"><b>Code 4 Adam</b> Perte visuelle + BOLO</span>
+          <span class="csr"><b>Code 4</b> Clôture</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         FELONY STOP
+         ============================================================ -->
+    <div class="felony-sep"></div>
+    <div class="sec-head felony-head">
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="url(#gDark)" stroke="rgba(226,60,60,.3)" stroke-width="1.5"/>
+        <!-- suspect car top -->
+        <rect x="50" y="16" width="20" height="34" rx="5" fill="url(#gCiv)" stroke="#11151c" stroke-width="1.2"/>
+        <rect x="52" y="44" width="6" height="3" rx="1.5" fill="#e23c3c"/><rect x="62" y="44" width="6" height="3" rx="1.5" fill="#e23c3c"/>
+        <!-- arc of 3 police units -->
+        <g transform="rotate(22 34 86)"><rect x="26" y="70" width="16" height="30" rx="4" fill="url(#gCop)" stroke="#0a1220" stroke-width="1.2"/><rect x="28" y="80" width="5" height="4" fill="#e23c3c"/><rect x="34" y="80" width="5" height="4" fill="#4fc3f7"/></g>
+        <g><rect x="52" y="74" width="16" height="30" rx="4" fill="url(#gCop)" stroke="#0a1220" stroke-width="1.2"/><rect x="54" y="84" width="5" height="4" fill="#e23c3c"/><rect x="60" y="84" width="5" height="4" fill="#4fc3f7"/></g>
+        <g transform="rotate(-22 86 86)"><rect x="78" y="70" width="16" height="30" rx="4" fill="url(#gCop)" stroke="#0a1220" stroke-width="1.2"/><rect x="80" y="80" width="5" height="4" fill="#e23c3c"/><rect x="86" y="80" width="5" height="4" fill="#4fc3f7"/></g>
+        <!-- converging aim lines -->
+        <g stroke="#e23c3c" stroke-width="1.4" stroke-dasharray="3 2" opacity=".55"><path d="M38 70 L58 52"/><path d="M60 70 L60 52"/><path d="M82 70 L62 52"/></g>
+        <circle cx="60" cy="56" r="4" fill="#f0a93c" stroke="#0d1117" stroke-width="1"/>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker" style="color:#ff7373">High-Risk · Felony Stop</div>
+        <h2>Felony <span style="color:#ff7373">Stop</span></h2>
+        <p>Interpellation à <b>haut risque</b> : occupants suspectés d'un crime grave (arme à feu, véhicule volé, suspect <i>wanted</i>). Mobilise plusieurs unités et exige une coordination stricte.</p>
+      </div>
+    </div>
+
+    <!-- DEFINITION -->
+    <div class="callout red">
+      <span class="ic">🚨</span>
+      <div>
+        <h4>Définition</h4>
+        <p>Le <b>felony stop</b> s'applique lorsqu'on suspecte les occupants d'un véhicule d'avoir commis un <b>crime grave</b> (arme à feu, véhicule volé, suspect <i>wanted</i>, etc.). Plusieurs unités sont mobilisées et la coordination doit être <b>stricte</b>.</p>
+      </div>
+    </div>
+
+    <!-- FORMATION RIDEAU -->
+    <div class="subhead">Formation rideau <span class="tag">Arc de couverture</span></div>
+    <div class="ts-diagram">
+      <svg viewBox="0 0 480 340" aria-label="Formation rideau du felony stop — arc de couverture">
+        <rect x="2" y="2" width="476" height="336" rx="16" fill="#0f141d" stroke="rgba(44,68,112,.55)" stroke-width="1.5"/>
+        <g opacity=".4"><line x1="36" y1="14" x2="36" y2="326" stroke="#2a3342" stroke-width="2" stroke-dasharray="10 14"/><line x1="444" y1="14" x2="444" y2="326" stroke="#2a3342" stroke-width="2" stroke-dasharray="10 14"/></g>
+
+        <!-- SUSPECT VEHICLE (top, facing up) -->
+        <g filter="url(#dsSoft)">
+          <rect x="212" y="34" width="56" height="104" rx="14" fill="url(#gCiv)" stroke="#11151c" stroke-width="2"/>
+          <rect x="219" y="62" width="42" height="46" rx="7" fill="#1b202a"/>
+          <path d="M219 62 q21 -9 42 0 v-5 q-21 -8 -42 0 Z" fill="#2b3340"/>
+          <path d="M219 108 q21 8 42 0 v5 q-21 8 -42 0 Z" fill="#2b3340"/>
+          <rect x="216" y="35" width="11" height="4" rx="2" fill="#fff3c4"/><rect x="253" y="35" width="11" height="4" rx="2" fill="#fff3c4"/>
+          <rect x="216" y="133" width="11" height="4" rx="2" fill="#e23c3c"/><rect x="253" y="133" width="11" height="4" rx="2" fill="#e23c3c"/>
+        </g>
+        <text x="240" y="92" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="9.5" letter-spacing="1.5" fill="#aebfd0">SUSPECT</text>
+        <!-- suspect exiting, backing toward units -->
+        <circle cx="240" cy="152" r="7" fill="#f0a93c" stroke="#0d1117" stroke-width="1.4"/>
+        <path d="M240 160 v20" stroke="#f0a93c" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrCv)" opacity=".8"/>
+
+        <!-- faint arc through the 3 units -->
+        <path d="M150 285 Q240 312 330 285" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="5 6" opacity=".35"/>
+
+        <!-- LEFT UNIT -->
+        <g transform="rotate(26 150 285)" filter="url(#dsSoft)">
+          <rect x="127" y="243" width="46" height="84" rx="12" fill="url(#gCop)" stroke="#0a1220" stroke-width="2"/>
+          <rect x="133" y="271" width="34" height="34" rx="6" fill="#16243f"/>
+          <rect x="136" y="279" width="14" height="8" rx="2" fill="#e23c3c"/><rect x="150" y="279" width="14" height="8" rx="2" fill="#4fc3f7"/>
+          <rect x="127" y="309" width="46" height="6" fill="#c9a84c" opacity=".4"/>
+          <line x1="127" y1="261" x2="110" y2="253" stroke="#3a4658" stroke-width="4" stroke-linecap="round"/>
+          <line x1="173" y1="261" x2="190" y2="253" stroke="#3a4658" stroke-width="4" stroke-linecap="round"/>
+        </g>
+        <!-- CENTER UNIT -->
+        <g filter="url(#dsSoft)">
+          <rect x="217" y="248" width="46" height="84" rx="12" fill="url(#gCop)" stroke="#0a1220" stroke-width="2"/>
+          <rect x="223" y="276" width="34" height="34" rx="6" fill="#16243f"/>
+          <rect x="226" y="284" width="14" height="8" rx="2" fill="#e23c3c"/><rect x="240" y="284" width="14" height="8" rx="2" fill="#4fc3f7"/>
+          <rect x="217" y="314" width="46" height="6" fill="#c9a84c" opacity=".4"/>
+          <line x1="217" y1="266" x2="200" y2="258" stroke="#3a4658" stroke-width="4" stroke-linecap="round"/>
+          <line x1="263" y1="266" x2="280" y2="258" stroke="#3a4658" stroke-width="4" stroke-linecap="round"/>
+        </g>
+        <!-- RIGHT UNIT -->
+        <g transform="rotate(-26 330 285)" filter="url(#dsSoft)">
+          <rect x="307" y="243" width="46" height="84" rx="12" fill="url(#gCop)" stroke="#0a1220" stroke-width="2"/>
+          <rect x="313" y="271" width="34" height="34" rx="6" fill="#16243f"/>
+          <rect x="316" y="279" width="14" height="8" rx="2" fill="#e23c3c"/><rect x="330" y="279" width="14" height="8" rx="2" fill="#4fc3f7"/>
+          <rect x="307" y="309" width="46" height="6" fill="#c9a84c" opacity=".4"/>
+          <line x1="307" y1="261" x2="290" y2="253" stroke="#3a4658" stroke-width="4" stroke-linecap="round"/>
+          <line x1="353" y1="261" x2="370" y2="253" stroke="#3a4658" stroke-width="4" stroke-linecap="round"/>
+        </g>
+
+        <!-- converging aim lines (no crossfire) -->
+        <g stroke="#e23c3c" stroke-width="1.6" stroke-dasharray="5 4" opacity=".5">
+          <path d="M180 236 L226 160"/><path d="M240 236 L240 162"/><path d="M300 236 L254 160"/>
+        </g>
+        <!-- officers in cover -->
+        <circle cx="180" cy="238" r="6.5" fill="#4fc3f7" stroke="#0d1117" stroke-width="1.6"/>
+        <circle cx="300" cy="238" r="6.5" fill="#4fc3f7" stroke="#0d1117" stroke-width="1.6"/>
+        <!-- IC officer (center) with megaphone -->
+        <circle cx="240" cy="240" r="7.5" fill="#c9a84c" stroke="#0d1117" stroke-width="1.6"/>
+        <path d="M248 234 l9 -3 v9 l-9 -3 z" fill="#c9a84c"/><path d="M257 232 a6 6 0 010 10" fill="none" stroke="#c9a84c" stroke-width="1.4"/>
+        <text x="240" y="259" text-anchor="middle" font-family="JetBrains Mono" font-weight="800" font-size="8" fill="#f4e29a">IC</text>
+        <text x="240" y="306" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" letter-spacing="1" fill="#c9a37a">ARC DE COUVERTURE · PORTES OUVERTES</text>
+      </svg>
+      <div class="ts-legend">
+        <div><i class="sw" style="background:#4fc3f7"></i>Officier en couverture — derrière sa portière / la carrosserie</div>
+        <div><i class="sw" style="background:#c9a84c"></i><b style="color:#c9a84c">IC</b> — Incident Commander au mégaphone, lead l'opération</div>
+        <div><i class="sw hatch"></i>Lignes de visée <b>convergentes</b> → évite les tirs croisés entre officiers</div>
+        <div><i class="sw" style="background:#f0a93c"></i>Suspect — coupe le moteur, sort et recule dos aux unités</div>
+      </div>
+    </div>
+    <div class="callout">
+      <span class="ic">🛡️</span>
+      <div>
+        <h4>Principe de la formation</h4>
+        <ul>
+          <li>Véhicules en <b>arc de cercle</b> derrière le suspect, <b>portes ouvertes</b> : chaque officier a une couverture.</li>
+          <li>Adaptable de <b>une à plusieurs unités</b> selon les effectifs disponibles.</li>
+          <li>Tous descendent <b>arme dégainée</b>, en position de couverture — les angles de tir convergent et ne se croisent jamais.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- INCIDENT COMMANDER -->
+    <div class="subhead">Incident Commander <span class="tag">Lead opération</span></div>
+    <div class="ic-card">
+      <svg class="ic-illu" viewBox="0 0 120 120" aria-label="Incident Commander au mégaphone">
+        <circle cx="60" cy="60" r="54" fill="url(#gDark)" stroke="rgba(201,168,76,.28)" stroke-width="1.5"/>
+        <g filter="url(#ds)" transform="rotate(-8 60 60)">
+          <path d="M40 50 L74 38 L74 84 L40 72 Z" fill="url(#gGold)" stroke="#7d6325" stroke-width="1.4"/>
+          <rect x="30" y="52" width="12" height="18" rx="3" fill="#16243f" stroke="url(#gGold)" stroke-width="1.4"/>
+          <rect x="72" y="34" width="7" height="54" rx="3" fill="#0d1117" stroke="url(#gGold)" stroke-width="1.2"/>
+          <rect x="48" y="72" width="6" height="16" rx="2" fill="#16243f" stroke="url(#gGold)" stroke-width="1"/>
+        </g>
+        <g fill="none" stroke="#4fc3f7" stroke-width="2.6" stroke-linecap="round" filter="url(#glowBlue)">
+          <path d="M88 44a16 16 0 010 30" opacity=".85"/><path d="M96 38a26 26 0 010 42" opacity=".5"/>
+        </g>
+      </svg>
+      <div>
+        <h4>Une seule voix sur le terrain</h4>
+        <p>Dès la formation établie, une unité est désignée <b>Incident Commander</b>. C'est elle qui prend le <b>mégaphone</b> et <b>lead toute l'opération</b>. Les autres unités <b>n'interviennent pas vocalement</b>, sauf ordre contraire.</p>
+      </div>
+    </div>
+
+    <!-- INJONCTIONS -->
+    <div class="subhead">Injonctions au mégaphone <span class="tag">Une instruction à la fois</span></div>
+    <p class="lead-note"><svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg> Dans cet ordre — <b>attendre la conformité</b> du suspect avant de passer à l'instruction suivante.</p>
+    <div class="timeline ts-timeline felony-timeline">
+      <div class="step"><span class="n">1</span><h5>🔑 Coupez le moteur</h5><p>Couper le contact immédiatement.</p></div>
+      <div class="step"><span class="n">2</span><h5>✋ Mains en évidence</h5><p>Mains bien visibles, hors de l'habitacle.</p></div>
+      <div class="step"><span class="n">3</span><h5>🚪 Sortez du véhicule</h5><p>Sortie lente, sans geste brusque.</p></div>
+      <div class="step"><span class="n">4</span><h5>↩️ Deux pas sur la gauche</h5><p>S'écarter du véhicule pour dégager la ligne de visée.</p></div>
+      <div class="step"><span class="n">5</span><h5>🔙 Reculez dos à moi</h5><p>Reculer dos aux unités jusqu'à l'ordre d'arrêt.</p></div>
+      <div class="step"><span class="n">6</span><h5>🌀 Vêtement + tour complet</h5><p>Soulever le haut et faire un tour complet sur soi-même (vérifier la ceinture).</p></div>
+      <div class="step"><span class="n">7</span><h5>🧎 À genoux, mains sur la tête</h5><p>À genoux, mains sur la tête, <b>doigts croisés</b>.</p></div>
+    </div>
+
+    <!-- ARREST TEAM -->
+    <div class="subhead">Arrest team <span class="tag">Interpellation</span></div>
+    <div class="compare">
+      <svg viewBox="0 0 300 150" aria-label="Arrest team — menottage et couverture">
+        <rect x="1" y="1" width="298" height="148" rx="12" fill="#0f141d" stroke="rgba(44,68,112,.5)" stroke-width="1"/>
+        <!-- suspect kneeling -->
+        <g transform="translate(70 70)">
+          <circle cx="0" cy="-14" r="9" fill="#f0a93c" stroke="#0d1117" stroke-width="1.2"/>
+          <path d="M-9 18 q9 -22 18 0 Z" fill="#f0a93c" stroke="#0d1117" stroke-width="1"/>
+          <path d="M-8 -18 q8 -8 16 0" fill="none" stroke="#0d1117" stroke-width="1.4"/>
+        </g>
+        <text x="70" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#e0b483">à genoux · mains</text>
+        <text x="70" y="114" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#e0b483">sur la tête</text>
+        <!-- O1 cuffing -->
+        <circle cx="135" cy="60" r="9" fill="#2fb96b" stroke="#0d1117" stroke-width="1.6"/>
+        <text x="135" y="63.5" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="9" fill="#0d1117">1</text>
+        <g transform="translate(116 76)" fill="none" stroke="#9be3b8" stroke-width="1.6"><circle cx="0" cy="0" r="3.4"/><circle cx="7" cy="0" r="3.4"/><path d="M3 0 h1"/></g>
+        <text x="135" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#9be3b8">menottage</text>
+        <!-- O2 cover -->
+        <circle cx="210" cy="60" r="9" fill="#4fc3f7" stroke="#0d1117" stroke-width="1.6"/>
+        <text x="210" y="63.5" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="9" fill="#0d1117">2</text>
+        <path d="M202 56 L92 50" stroke="#e23c3c" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/>
+        <text x="210" y="98" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="#bfe6fb">couverture</text>
+        <!-- escort to vehicle -->
+        <path d="M150 122 H250" stroke="#6f86a0" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arrCv)" opacity=".7"/>
+        <rect x="252" y="112" width="22" height="20" rx="4" fill="url(#gCop)" stroke="#0a1220" stroke-width="1"/>
+        <text x="205" y="138" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#8195a8">escorte → véhicule</text>
+      </svg>
+      <div class="illu-cap">L'arrest team n'intervient qu'une fois le suspect <b>à genoux et sous contrôle total</b></div>
+    </div>
+    <div class="ts-roles">
+      <div class="role-card">
+        <div class="rhead">
+          <svg class="role-ic" viewBox="0 0 60 60"><g fill="none" stroke="#2fb96b" stroke-width="3"><circle cx="22" cy="30" r="11"/><circle cx="44" cy="30" r="11"/></g><path d="M31 30 h2" stroke="#2fb96b" stroke-width="3"/></svg>
+          <div><div class="rtag" style="color:#9be3b8">Conducteur</div><h4>Officier 1</h4></div>
+        </div>
+        <p>S'approche du suspect, procède au <b>menottage</b>, puis à une <b>palpation de sécurité</b> complète. Escorte ensuite le suspect vers le véhicule de police.</p>
+      </div>
+      <div class="role-card">
+        <div class="rhead">
+          <svg class="role-ic" viewBox="0 0 60 60"><path d="M30 8 L50 16 V32 C50 44 41 50 30 54 C19 50 10 44 10 32 V16 Z" fill="none" stroke="#4fc3f7" stroke-width="2.4"/><circle cx="30" cy="30" r="4" fill="#4fc3f7"/><path d="M30 14 V46 M14 30 H46" stroke="#4fc3f7" stroke-width="1.4" opacity=".6"/></svg>
+          <div><div class="rtag">Passager</div><h4>Officier 2</h4></div>
+        </div>
+        <p>Se positionne <b>en couverture derrière l'Officier 1</b>, <b>arme braquée</b> sur le suspect jusqu'à la sécurisation complète.</p>
+      </div>
+    </div>
+
+    <!-- FIN -->
+    <div class="callout">
+      <span class="ic">✅</span>
+      <div>
+        <h4>Fin de procédure</h4>
+        <p>Tous les occupants sécurisés et menottés, l'Incident Commander annonce le <b>Code 4</b> à la radio. Le périmètre est levé : les unités retournent en patrouille ou <b>escortent les suspects au poste</b> selon les instructions.</p>
+        <div class="ts-codestrip" style="margin-top:12px">
+          <span class="csr"><b>Code 3</b> Mise en place</span>
+          <span class="csr"><b>Mégaphone</b> Injonctions</span>
+          <span class="csr"><b>Arrest team</b> Menottage</span>
+          <span class="csr"><b>Code 4</b> Sécurisé</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DIVISIONS ================= -->
+  <section class="panel" id="divisions">
+    <div class="sec-head">
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <rect x="42" y="50" width="36" height="22" rx="5" fill="#1a2744" stroke="url(#gGold)" stroke-width="2"/>
+        <text x="60" y="65" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="11" fill="url(#gGold)">LSPD</text>
+        <g stroke="url(#gGold)" stroke-width="1.5"><path d="M60 50 L30 24"/><path d="M60 50 L60 20"/><path d="M60 50 L90 24"/><path d="M60 72 L28 98"/><path d="M60 72 L60 102"/><path d="M60 72 L92 98"/></g>
+        <g fill="#16243f" stroke="url(#gGold)" stroke-width="1.2"><circle cx="30" cy="22" r="7"/><circle cx="60" cy="18" r="7"/><circle cx="90" cy="22" r="7"/><circle cx="28" cy="100" r="7"/><circle cx="60" cy="104" r="7"/><circle cx="92" cy="100" r="7"/></g>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">Organisation interne</div>
+        <h2>Divisions & <span>Unités</span></h2>
+        <p>Vue d'ensemble de l'organisation interne du LSPD. Chaque division a un rôle dédié — clique une carte pour le détail.</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <div class="org-wrap" id="divOrg"></div>
+    <div class="div-grid" id="divGrid"></div>
+
+    <div class="callout">
+      <span class="ic">⚠️</span>
+      <div><h4>Règle d'affectation</h4><p>Chaque officier ne peut appartenir qu'à <b>UNE SEULE division majeure</b> à la fois.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= QUIZ ================= -->
+  <section class="panel" id="quiz">
+    <div class="sec-head">
+      <svg class="icon-illustration" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="50" fill="url(#gDark)" stroke="rgba(201,168,76,.3)" stroke-width="1.5"/>
+        <text x="60" y="82" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="64" fill="url(#gGold)">?</text>
+      </svg>
+      <div class="sec-titles">
+        <div class="kicker">Auto-évaluation</div>
+        <h2>Quiz de <span>Révision</span></h2>
+        <p>Teste tes connaissances sur toutes les sections. Score et progression mis à jour en direct.</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <div class="quiz-top">
+      <div class="quiz-score"><span id="qScore">0</span><small>/<span id="qTotal">0</span></small></div>
+      <div class="quiz-meta">
+        <div class="qt">Progression</div>
+        <div class="qbar"><i id="qBar"></i></div>
+        <div class="qprog"><span id="qAnswered">0</span> répondues · <span id="qCorrect">0</span> correctes</div>
+      </div>
+      <button class="quiz-reset" id="qReset">↻ Recommencer</button>
+    </div>
+    <div class="quiz-grid" id="quizGrid"></div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="memorial">🕯️ En mémoire de l'officier <b>Hueston</b><span class="eod">End of Watch · Gone but never forgotten</span></div>
+  <b>LSPD</b> · Field Duty Terminal · Document de révision <b>GTA RP</b> — usage immersif uniquement
+</footer>
+
+<!-- ===== MODAL ===== -->
+<div class="modal" id="modal">
+  <div class="modal-inner" role="dialog" aria-modal="true" aria-labelledby="mName">
+    <button class="close" id="modalClose" aria-label="Fermer">✕</button>
+    <div class="m-cat" id="mCat"></div>
+    <div class="m-name" id="mName"></div>
+    <div class="modal-sleeves" id="mSleeves"></div>
+    <div class="m-desc" id="mDesc"></div>
+    <div class="m-note" id="mNote" style="display:none"></div>
+  </div>
+</div>
+
+<script src="app.js" defer></script>
+</body>
+</html>

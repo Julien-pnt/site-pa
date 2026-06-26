@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Central hors service — LSPD</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="256x256" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Teko:wght@500;600;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--navy:#1a2744;--gold:#c9a84c;--gold-soft:#f0d98a;--blue:#4fc3f7;
+  --grey:#e8e8e8;--muted:#8ea2b6;--accent:#ea580c;
+  --f-disp:'Oswald',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,monospace;--f-num:'Teko',var(--f-disp);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--f-disp);color:var(--grey);background:var(--bg);
+  background-image:
+    radial-gradient(900px 480px at 50% -8%,#2a2419 0,transparent 60%),
+    radial-gradient(700px 700px at 110% 120%,#16243f 0,transparent 55%),
+    linear-gradient(180deg,#0a1220,#0d1117);
+  min-height:100svh;display:flex;flex-direction:column;overflow-x:hidden;position:relative;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
+  background-image:linear-gradient(rgba(44,68,112,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(44,68,112,.07) 1px,transparent 1px);
+  background-size:44px 44px;-webkit-mask-image:radial-gradient(ellipse 75% 65% at 50% 35%,#000 30%,transparent 100%);mask-image:radial-gradient(ellipse 75% 65% at 50% 35%,#000 30%,transparent 100%)}
+.scanlines{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);opacity:.45}
+.scanlines::after{content:"";position:absolute;left:0;right:0;top:-160px;height:140px;
+  background:linear-gradient(180deg,transparent,rgba(234,88,12,.07),transparent);animation:scan 7s linear infinite}
+@keyframes scan{to{top:100%}}
+.hazard{height:5px;width:100%;position:relative;z-index:2;
+  background:repeating-linear-gradient(45deg,var(--gold) 0 16px,#0a0e15 16px 32px);opacity:.85}
+.stage{flex:1;position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:44px 20px;gap:24px;text-align:center}
+.ghost{position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);z-index:-1;
+  font-family:var(--f-num);font-weight:700;font-size:min(58vw,620px);line-height:.8;color:rgba(234,88,12,.05);
+  letter-spacing:-.03em;user-select:none}
+.dispatch{position:relative;max-width:600px;width:100%;overflow:hidden;
+  background:linear-gradient(165deg,rgba(36,58,94,.34),rgba(13,23,38,.72));
+  border:1px solid rgba(201,168,76,.4);border-radius:18px;padding:30px 34px 34px;
+  box-shadow:0 40px 90px -30px #000,0 0 60px -28px rgba(201,168,76,.5);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:rise .6s cubic-bezier(.2,.9,.2,1) both}
+.dispatch::after{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.d-head{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.d-head .badge{width:26px;height:30px;flex:none}
+.d-id{font-family:var(--f-mono);font-size:.64rem;letter-spacing:.32em;color:var(--gold);text-transform:uppercase}
+.d-status{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:.56rem;
+  letter-spacing:.16em;color:var(--accent);text-transform:uppercase;
+  border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);border-radius:20px;padding:4px 10px}
+.d-status i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:blink 1.1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.d-illu{width:172px;height:172px;display:block;margin:2px auto 12px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.5))}
+.d-code{font-family:var(--f-mono);font-weight:800;font-size:.95rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
+.d-code b{color:var(--accent);text-shadow:0 0 18px color-mix(in srgb,var(--accent) 60%,transparent);animation:flick 5s infinite}
+@keyframes flick{0%,96%,100%{opacity:1}97%{opacity:.5}98%{opacity:.9}99%{opacity:.6}}
+.d-title{font-family:var(--f-disp);font-weight:600;font-size:clamp(1.7rem,6vw,2.7rem);letter-spacing:.04em;
+  margin:8px 0 6px;text-transform:uppercase}
+.d-msg{color:#a9bccf;font-size:1rem;line-height:1.6;max-width:46ch;margin:0 auto}
+.d-radio{font-family:var(--f-mono);font-size:.76rem;line-height:1.6;color:#7d93a8;margin:18px auto 0;max-width:50ch;text-align:left;
+  border-left:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);padding:10px 14px;border-radius:0 8px 8px 0}
+.d-radio b{color:var(--accent)}
+.d-btn{display:inline-flex;align-items:center;gap:9px;margin-top:24px;font-family:var(--f-disp);font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;font-size:.9rem;color:#0d1117;
+  background:linear-gradient(180deg,var(--gold-soft),var(--gold));border-radius:10px;padding:13px 24px;text-decoration:none;
+  transition:transform .2s,box-shadow .2s;box-shadow:0 10px 30px -10px rgba(201,168,76,.6)}
+.d-btn:hover{transform:translateY(-2px);box-shadow:0 16px 40px -12px rgba(201,168,76,.85)}
+.d-btn:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.memorial{position:relative;z-index:3;font-family:var(--f-mono);font-size:.56rem;letter-spacing:.22em;
+  text-transform:uppercase;color:#5f7488;padding:0 16px 6px}
+.memorial span{color:#7d93a8}
+.pulse{transform-origin:center;animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{0%,100%{opacity:.85}50%{opacity:.35}}
+@media (max-width:520px){.dispatch{padding:24px 18px 26px}.d-radio{font-size:.7rem}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="scanlines" aria-hidden="true"></div>
+<div class="hazard" aria-hidden="true"></div>
+<main class="stage">
+  <div class="ghost" aria-hidden="true">503</div>
+  <section class="dispatch">
+    <div class="d-head">
+      <svg class="badge" viewBox="0 0 100 116" aria-hidden="true"><path d="M50 4 L92 18 V58 C92 86 72 104 50 112 C28 104 8 86 8 58 V18 Z" fill="#1a2744" stroke="#c9a84c" stroke-width="5"/><path d="M50 30 l5.6 11.4 12.6 1.8 -9.1 8.9 2.2 12.5 -11.3 -5.9 -11.3 5.9 2.2 -12.5 -9.1 -8.9 12.6 -1.8 Z" fill="#c9a84c"/></svg>
+      <span class="d-id">LSPD · Dispatch</span>
+      <span class="d-status"><i></i>Central HS</span>
+    </div>
+    <svg class="d-illu" viewBox="0 0 200 200" role="img" aria-label="Central hors service — signal perdu">
+      <rect x="18" y="40" width="164" height="106" rx="11" fill="#0b1220" stroke="#2a2f3a" stroke-width="3"/>
+      <rect x="26" y="48" width="148" height="90" rx="6" fill="#0c1626"/>
+      <line x1="26" y1="93" x2="174" y2="93" stroke="#16263c" stroke-width="1"/>
+      <path class="pulse" d="M30 93 H72 l5 -22 5 42 5 -26 4 6 H170" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="100" y="126" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="800" font-size="11" letter-spacing="3" fill="#6b7a8c">SIGNAL PERDU</text>
+      <rect x="92" y="146" width="16" height="16" fill="#2a2f3a"/><rect x="68" y="160" width="64" height="9" rx="3" fill="#2a2f3a"/>
+    </svg>
+    <div class="d-code">Code <b>503</b> · Service Unavailable</div>
+    <h1 class="d-title">Central hors service</h1>
+    <p class="d-msg">Le central ne répond plus. Les unités techniques sont <strong>sur place</strong> et rétablissent la liaison. Réessaie dans un instant.</p>
+    <p class="d-radio">« Mayday, mayday — le central est hors service. <b>Maintenance en cours</b>, restez en attente sur ce canal. »</p>
+    <a class="d-btn" href="/">⟳ Réessayer</a>
+  </section>
+</main>
+<footer class="memorial">LSPD — Document Interne Confidentiel · <span>En mémoire de l'officier Hueston</span></footer>
+<div class="hazard" aria-hidden="true"></div>
+</body>
+</html>

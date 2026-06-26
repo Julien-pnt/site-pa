@@ -1,0 +1,57 @@
+# =============================================================================
+#  LSPD — Manuel de Révision · .gitignore
+#  Site statique (HTML/CSS/JS). Les assets (favicons, insignes) sont VERSIONNÉS.
+# =============================================================================
+
+# ---- Système d'exploitation ----
+.DS_Store
+.AppleDouble
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ---- Éditeurs / IDE ----
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# ---- Logs & fichiers temporaires ----
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+.cache/
+tmp/
+scratch/
+
+# ---- Claude Code ----
+# Skills vendorés (volumineux, réinstallables) :
+#   npx claude-code-templates@latest --skill creative-design/ui-ux-pro-max,…
+# Retire cette ligne si tu veux les partager dans le dépôt.
+.claude/skills/
+.claude/settings.local.json
+.claude/*.local.json
+
+# ---- Node (si un outillage est ajouté plus tard) ----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---- Secrets & certificats — NE JAMAIS COMMITTER ----
+# Les certificats Let's Encrypt restent sur le serveur, pas dans le dépôt.
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.cert
+*.csr
+*.p12
+*.pfx
+secrets.*

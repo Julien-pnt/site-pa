@@ -27,6 +27,13 @@ sudo chown -R www-data:www-data /var/www/lenavire
 > La page d'accueil reste `lspd-revision.html` (directive `index`). Pour une URL plus
 > classique tu peux la renommer `index.html` et adapter `index` dans le `.conf`.
 
+> ⚠️ Si tu déploies par `git clone`/`git pull` directement dans le webroot (plutôt que
+> ce `rsync --exclude`), `deploy/` et `.git/` se retrouvent physiquement dans
+> `/var/www/lenavire`. `.git/` est bloqué par la règle "fichiers cachés" du `.conf`,
+> et `/deploy/` est explicitement bloqué (`location ^~ /deploy/ { deny all; }`) —
+> mais ce n'est vrai qu'à partir de la version du `.conf` qui inclut ce bloc :
+> vérifie que ton site déployé a bien cette ligne après mise à jour.
+
 ## 2. DNS (DuckDNS)
 
 Sur https://www.duckdns.org : le sous-domaine **lenavire** doit pointer vers l'IP publique

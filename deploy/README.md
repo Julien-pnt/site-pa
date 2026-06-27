@@ -10,9 +10,11 @@ Copie le contenu du site dans la racine web `/var/www/lenavire/` :
 /var/www/lenavire/
 ├── lspd-revision.html      ← page d'accueil (index)
 ├── app.js
+├── disclaimer.js           ← briefing affiché à chaque connexion
 ├── styles.css
-├── 403.html  404.html  50x.html   ← pages d'erreur
-└── assets/                 ← images, favicons, insignes…
+├── fonts.css               ← @font-face (polices auto-hébergées)
+├── 403.html  404.html  405.html  50x.html   ← pages d'erreur
+└── assets/                 ← images, favicons, insignes, fonts/ (woff2)…
 ```
 
 ```bash
@@ -90,17 +92,45 @@ chemins (et redirige `/grades/` → `/grades` pour ne pas casser les chemins rel
 Les URLs inconnues renvoient un vrai **404** (page d'erreur LSPD). Les liens sont
 partageables et rechargeables.
 
+## Mode maintenance
+
+Bascule le site en **503** (page « Central hors service ») le temps d'une intervention,
+sans toucher à nginx :
+
+```bash
+sudo WEBROOT=/var/www/lenavire deploy/maintenance.sh on      # site -> 503
+sudo WEBROOT=/var/www/lenavire deploy/maintenance.sh status  # état courant
+sudo WEBROOT=/var/www/lenavire deploy/maintenance.sh off     # site rétabli
+```
+
+Le script crée/supprime un drapeau `.maintenance` à la racine du site. La conf nginx
+teste sa présence **à chaque requête** (`if (-f $document_root/.maintenance)`), donc la
+bascule est instantanée — **aucun `reload`** nécessaire. Le fichier est masqué du web
+(règle « fichiers cachés ») et la page d'erreur garde ses assets (pas de boucle).
+
+> `WEBROOT` est optionnel (défaut `/var/www/lenavire`). Rends le script exécutable une
+> fois : `chmod +x deploy/maintenance.sh`.
+
+## Avertissement à chaque connexion (disclaimer)
+
+Au chargement de la page, un **briefing** s'affiche (arrière-plan flouté) rappelant que
+les notes sont celles d'un joueur, qu'il faut d'abord se faire confiance et que ce n'est
+qu'une aide. L'utilisateur coche la case d'acceptation puis **Valider** pour entrer.
+Géré par `disclaimer.js` (chargé en `defer`, conforme à la CSP `script-src 'self'`),
+sans `localStorage` : il réapparaît à chaque connexion.
+
 ## Durcissement appliqué (rappel)
 
 | Élément | Détail |
 |---|---|
 | Redirection | 80 → 443 (301), HSTS 2 ans |
 | TLS | 1.2 + 1.3 uniquement, ciphers ECDHE/AEAD, OCSP stapling, tickets off |
-| CSP | `script-src 'self'` (aucun script inline), `object-src 'none'`, `frame-ancestors 'none'` |
+| CSP | `script-src 'self'` (aucun script inline), `style-src 'self' 'unsafe-inline'`, `font-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'` |
+| Polices | **auto-hébergées** (woff2 latin + latin-ext) — aucune dépendance tierce, aucune fuite d'IP vers Google |
 | En-têtes | X-Content-Type-Options, X-Frame-Options DENY, Referrer-Policy no-referrer, Permissions-Policy, COOP/CORP |
 | Divers | `server_tokens off`, méthodes limitées à GET/HEAD, fichiers cachés bloqués, body max 1 Mo |
 | Cache | assets 30 j (`expires`, sans casser l'héritage des en-têtes), HTML `no-cache` |
-| Erreurs | pages 403 / 404 / 50x personnalisées (thème LSPD) |
+| Erreurs | pages 403 / 404 / 405 / 50x personnalisées (thème LSPD) |
 
 > Note : `frame-ancestors` et HSTS ne sont efficaces qu'en **en-tête HTTP** (ici via nginx),
 > pas en `<meta>` — c'est pour ça que cette conf complète le `<meta>` CSP déjà présent dans la page.

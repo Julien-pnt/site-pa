@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Security hardening (defense-in-depth) — no inline scripts, so script-src stays strict.
      'unsafe-inline' is required only for style because the markup uses inline style="" attributes. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com 'self'; img-src 'self' data:; connect-src 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0d1117">
@@ -14,9 +14,9 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="256x256" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Teko:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/barlow-400-latin.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/oswald-600-latin.woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -1104,6 +1104,41 @@
   <b>LSPD</b> · Field Duty Terminal · Document de révision <b>GTA RP</b> — usage immersif uniquement
 </footer>
 
+<!-- ===== DISCLAIMER (briefing affiché à chaque connexion) ===== -->
+<div class="disclaimer" id="disclaimer" role="dialog" aria-modal="true" aria-labelledby="discTitle" aria-describedby="discBody">
+  <div class="disclaimer-card">
+    <div class="disc-head">
+      <svg class="disc-badge" viewBox="0 0 100 116" aria-hidden="true"><path d="M50 4 L92 18 V58 C92 86 72 104 50 112 C28 104 8 86 8 58 V18 Z" fill="#1a2744" stroke="#c9a84c" stroke-width="5"/><path d="M50 30 l5.6 11.4 12.6 1.8 -9.1 8.9 2.2 12.5 -11.3 -5.9 -11.3 5.9 2.2 -12.5 -9.1 -8.9 12.6 -1.8 Z" fill="#c9a84c"/></svg>
+      <div>
+        <div class="disc-id">LSPD · Dispatch</div>
+        <div class="disc-kicker">Briefing obligatoire</div>
+      </div>
+      <span class="disc-status"><i></i>À lire</span>
+    </div>
+    <h2 class="disc-title" id="discTitle">Avant d'entrer en service</h2>
+    <p class="disc-body" id="discBody">
+      Les notes de ce manuel sont celles d'un <b>joueur</b>, uniquement. Elles n'ont aucune valeur
+      officielle. Avant tout, <b>fais-toi confiance</b> — ne te fie pas impérativement à ces notes :
+      elles ne sont qu'une <b>aide</b> à la révision, jamais une vérité absolue.
+    </p>
+
+    <label class="disc-check" for="discAgree">
+      <input type="checkbox" id="discAgree">
+      <span class="box" aria-hidden="true"></span>
+      <span class="lbl">J'ai lu et compris : ces notes ne sont qu'une aide, je me fie d'abord à moi-même.</span>
+    </label>
+
+    <label class="disc-check disc-check--locked" id="discIgnacioLabel">
+      <input type="checkbox" id="discIgnacio" tabindex="-1" aria-disabled="true">
+      <span class="box" aria-hidden="true"></span>
+      <span class="lbl">C'est de la faute à Ignacio si je rate la PA.</span>
+      <span class="disc-locktag" aria-hidden="true">verrouillé</span>
+    </label>
+
+    <button class="disc-btn" id="discValidate" type="button" disabled>Valider</button>
+  </div>
+</div>
+
 <!-- ===== MODAL ===== -->
 <div class="modal" id="modal">
   <div class="modal-inner" role="dialog" aria-modal="true" aria-labelledby="mName">
@@ -1117,5 +1152,6 @@
 </div>
 
 <script src="app.js" defer></script>
+<script src="disclaimer.js" defer></script>
 </body>
 </html>

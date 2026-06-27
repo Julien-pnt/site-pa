@@ -4,21 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>403 · Accès restreint — LSPD</title>
+<title>405 · Méthode non autorisée — LSPD</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="256x256" href="/assets/favicon.png">
 <link rel="stylesheet" href="/fonts.css">
 <style>
 :root{
   --bg:#0d1117;--navy:#1a2744;--gold:#c9a84c;--gold-soft:#f0d98a;--blue:#4fc3f7;
-  --grey:#e8e8e8;--muted:#8ea2b6;--accent:#dc2626;
+  --grey:#e8e8e8;--muted:#8ea2b6;--accent:#e0922e;
   --f-disp:'Oswald',system-ui,sans-serif;--f-mono:'JetBrains Mono',ui-monospace,monospace;--f-num:'Teko',var(--f-disp);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
 body{font-family:var(--f-disp);color:var(--grey);background:var(--bg);
   background-image:
-    radial-gradient(900px 480px at 50% -8%,#2a1d2b 0,transparent 60%),
+    radial-gradient(900px 480px at 50% -8%,#2a2314 0,transparent 60%),
     radial-gradient(700px 700px at 110% 120%,#16243f 0,transparent 55%),
     linear-gradient(180deg,#0a1220,#0d1117);
   min-height:100svh;display:flex;flex-direction:column;overflow-x:hidden;position:relative;-webkit-font-smoothing:antialiased}
@@ -28,14 +28,14 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .scanlines{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden;
   background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);opacity:.45}
 .scanlines::after{content:"";position:absolute;left:0;right:0;top:-160px;height:140px;
-  background:linear-gradient(180deg,transparent,rgba(220,38,38,.07),transparent);animation:scan 7s linear infinite}
+  background:linear-gradient(180deg,transparent,rgba(224,146,46,.07),transparent);animation:scan 7s linear infinite}
 @keyframes scan{to{top:100%}}
 .hazard{height:5px;width:100%;position:relative;z-index:2;
   background:repeating-linear-gradient(45deg,var(--gold) 0 16px,#0a0e15 16px 32px);opacity:.85}
 .stage{flex:1;position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:44px 20px;gap:24px;text-align:center}
 .ghost{position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);z-index:-1;
-  font-family:var(--f-num);font-weight:700;font-size:min(58vw,620px);line-height:.8;color:rgba(220,38,38,.045);
+  font-family:var(--f-num);font-weight:700;font-size:min(58vw,620px);line-height:.8;color:rgba(224,146,46,.05);
   letter-spacing:-.03em;user-select:none}
 .dispatch{position:relative;max-width:600px;width:100%;overflow:hidden;
   background:linear-gradient(165deg,rgba(36,58,94,.34),rgba(13,23,38,.72));
@@ -45,7 +45,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .dispatch::after{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
 @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .tape{position:absolute;top:22px;right:-58px;z-index:3;transform:rotate(40deg);
-  background:repeating-linear-gradient(45deg,#dc2626 0 13px,#0a0e15 13px 26px);
+  background:repeating-linear-gradient(45deg,var(--accent) 0 13px,#0a0e15 13px 26px);
   color:#fff;font-family:var(--f-mono);font-weight:800;font-size:.6rem;letter-spacing:.16em;padding:6px 64px;
   text-transform:uppercase;box-shadow:0 6px 18px rgba(0,0,0,.55)}
 .d-head{display:flex;align-items:center;gap:11px;margin-bottom:16px}
@@ -54,7 +54,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .d-status{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:.56rem;
   letter-spacing:.16em;color:var(--accent);text-transform:uppercase;
   border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);border-radius:20px;padding:4px 10px}
-.d-status i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:blink 1.1s infinite}
+.d-status i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:blink 1.2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 .d-illu{width:158px;height:158px;display:block;margin:4px auto 12px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.5))}
 .d-code{font-family:var(--f-mono);font-weight:800;font-size:.95rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
@@ -75,6 +75,8 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .memorial{position:relative;z-index:3;font-family:var(--f-mono);font-size:.56rem;letter-spacing:.22em;
   text-transform:uppercase;color:#5f7488;padding:0 16px 6px}
 .memorial span{color:#7d93a8}
+.barrier{transform-origin:42px 104px;animation:lift 3.4s ease-in-out infinite}
+@keyframes lift{0%,100%{transform:rotate(0)}45%,65%{transform:rotate(-58deg)}}
 @media (max-width:520px){.dispatch{padding:24px 18px 26px}.d-radio{font-size:.7rem}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
 </style>
@@ -83,25 +85,41 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <div class="scanlines" aria-hidden="true"></div>
 <div class="hazard" aria-hidden="true"></div>
 <main class="stage">
-  <div class="ghost" aria-hidden="true">403</div>
+  <div class="ghost" aria-hidden="true">405</div>
   <section class="dispatch">
-    <div class="tape" aria-hidden="true">Accès refusé</div>
+    <div class="tape" aria-hidden="true">Stop</div>
     <div class="d-head">
       <svg class="badge" viewBox="0 0 100 116" aria-hidden="true"><path d="M50 4 L92 18 V58 C92 86 72 104 50 112 C28 104 8 86 8 58 V18 Z" fill="#1a2744" stroke="#c9a84c" stroke-width="5"/><path d="M50 30 l5.6 11.4 12.6 1.8 -9.1 8.9 2.2 12.5 -11.3 -5.9 -11.3 5.9 2.2 -12.5 -9.1 -8.9 12.6 -1.8 Z" fill="#c9a84c"/></svg>
       <span class="d-id">LSPD · Dispatch</span>
-      <span class="d-status"><i></i>Périmètre bouclé</span>
+      <span class="d-status"><i></i>Checkpoint</span>
     </div>
-    <svg class="d-illu" viewBox="0 0 200 200" role="img" aria-label="Accès restreint — badge requis">
-      <path d="M100 12 L170 34 V96 C170 142 138 172 100 188 C62 172 30 142 30 96 V34 Z" fill="#16243f" stroke="#c9a84c" stroke-width="4"/>
-      <path d="M100 24 L158 43 V94 C158 134 132 159 100 173 C68 159 42 134 42 94 V43 Z" fill="none" stroke="rgba(201,168,76,.4)" stroke-width="1.5"/>
-      <path d="M80 98 V80 a20 20 0 0 1 40 0 V98" fill="none" stroke="#c9a84c" stroke-width="8" stroke-linecap="round"/>
-      <rect x="66" y="98" width="68" height="52" rx="9" fill="#c9a84c" stroke="#7d6325" stroke-width="1.5"/>
-      <circle cx="100" cy="120" r="7" fill="#16243f"/><rect x="96.5" y="120" width="7" height="18" rx="3" fill="#16243f"/>
+    <svg class="d-illu" viewBox="0 0 200 200" role="img" aria-label="Barrière de checkpoint baissée">
+      <!-- sol -->
+      <line x1="14" y1="150" x2="186" y2="150" stroke="#2a3550" stroke-width="3"/>
+      <!-- poteau gauche -->
+      <rect x="34" y="96" width="16" height="58" rx="3" fill="#16243f" stroke="#c9a84c" stroke-width="2"/>
+      <circle cx="42" cy="104" r="6" fill="#0b1220" stroke="#c9a84c" stroke-width="2"/>
+      <!-- support droit -->
+      <rect x="150" y="120" width="14" height="34" rx="3" fill="#16243f" stroke="#3a4a66" stroke-width="2"/>
+      <!-- lisse de barrière (baissée) à rayures -->
+      <g class="barrier">
+        <rect x="42" y="98" width="118" height="13" rx="6" fill="#0b1220" stroke="#e0922e" stroke-width="2"/>
+        <rect x="48" y="100.5" width="108" height="8" rx="4" fill="url(#stripes)"/>
+      </g>
+      <defs>
+        <pattern id="stripes" width="22" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+          <rect width="22" height="8" fill="#e0922e"/>
+          <rect width="11" height="8" fill="#0b1220"/>
+        </pattern>
+      </defs>
+      <!-- panneau interdiction -->
+      <circle cx="100" cy="58" r="22" fill="#0b1220" stroke="#e0922e" stroke-width="4"/>
+      <rect x="86" y="54" width="28" height="8" rx="2" fill="#e0922e"/>
     </svg>
-    <div class="d-code">Code <b>403</b> · Forbidden</div>
-    <h1 class="d-title">Accès restreint</h1>
-    <p class="d-msg"><strong>Périmètre bouclé.</strong> Cette zone est réservée au personnel autorisé — un badge valide est requis pour y accéder.</p>
-    <p class="d-radio">« Dispatch à toutes les unités : secteur fermé au public. <b>Accès refusé</b> — présentez votre badge. »</p>
+    <div class="d-code">Code <b>405</b> · Method Not Allowed</div>
+    <h1 class="d-title">Méthode non autorisée</h1>
+    <p class="d-msg">Ce poste ne traite que les requêtes de <strong>consultation</strong> (GET / HEAD). La méthode employée a été <strong>refusée au checkpoint</strong>.</p>
+    <p class="d-radio">« Dispatch : requête non conforme interceptée au contrôle. <b>Méthode refusée</b> — repassez en consultation simple. »</p>
     <a class="d-btn" href="/">↩ Retour au poste</a>
   </section>
 </main>

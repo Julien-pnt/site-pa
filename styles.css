@@ -166,8 +166,7 @@ section.panel.active{display:block}
   border:1px solid rgba(79,195,247,.4);border-radius:18px;padding:2px 7px;text-transform:uppercase}
 
 /* ---------- MIRANDA ---------- */
-.miranda-wrap{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-@media(max-width:820px){.miranda-wrap{grid-template-columns:1fr}}
+.miranda-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:22px}
 .miranda-card{position:relative;background:linear-gradient(160deg,rgba(36,58,94,.3),rgba(15,26,46,.55));
   border:1px solid rgba(44,68,112,.7);border-radius:16px;padding:26px 28px;transition:.3s}
 .miranda-card:hover{border-color:var(--gold);box-shadow:0 0 30px -10px rgba(201,168,76,.45)}

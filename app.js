@@ -519,7 +519,7 @@ const SLUGS={
 const ID_BY_SLUG=Object.fromEntries(Object.entries(SLUGS).map(([id,s])=>[s,id]));
 const TITLES={
   grades:'Grades & Insignes', tenues:'Tenues & Apparence', penal:'Codes Pénaux',
-  radio:'Codes Radio', miranda:'Droits Miranda', procedures:'Procédures',
+  radio:'Codes Radio', miranda:'Avertissement Miranda', procedures:'Procédures',
   trafficstop:'Traffic & Felony Stop', divisions:'Divisions', quiz:'Quiz'
 };
 const BASE_TITLE='LSPD — Manuel de Révision';
@@ -559,15 +559,17 @@ setActive(routeId(),{replace:true, scroll:false});
    ========================================================= */
 const MIRANDA={
   en:"You have the right to remain silent. Anything you say can and will be used against you in a court of law. You have the right to an attorney. If you cannot afford an attorney, one will be appointed for you. Do you understand these rights as they have been read to you?",
-  es:"Tiene el derecho de guardar silencio. Todo lo que diga puede y será usado en su contra ante un tribunal de justicia. Tiene el derecho a tener un abogado presente. Si no puede pagar un abogado, se le asignará uno antes del interrogatorio. ¿Entiende estos derechos?"
+  es:"Tiene el derecho de guardar silencio. Todo lo que diga puede y será usado en su contra ante un tribunal de justicia. Tiene el derecho a tener un abogado presente. Si no puede pagar un abogado, se le asignará uno antes del interrogatorio. ¿Entiende estos derechos?",
+  fr:"Vous avez le droit de garder le silence. Tout ce que vous direz pourra être utilisé contre vous devant un tribunal. Vous avez le droit de consulter un avocat. Si vous n'en avez pas les moyens, un avocat vous sera désigné avant l'interrogatoire. Comprenez-vous ces droits tels qu'ils viennent de vous être lus ?"
 };
+const MIRANDA_LOCALE={en:'en-US',es:'es-ES',fr:'fr-FR'};
 document.querySelectorAll('.play').forEach(btn=>{
   btn.addEventListener('click',()=>{
     if(!('speechSynthesis' in window)){ btn.textContent='Synthèse vocale indisponible'; return; }
     const lang=btn.dataset.lang;
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(MIRANDA[lang]);
-    u.lang = lang==='es'?'es-ES':'en-US'; u.rate=.95;
+    u.lang = MIRANDA_LOCALE[lang]||'en-US'; u.rate=.95;
     speechSynthesis.speak(u);
   });
 });

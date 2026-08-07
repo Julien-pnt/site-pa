@@ -1282,32 +1282,74 @@
     }
 
     // Construit UN bloc rapport conforme au template officiel.
+    // ═══════════════════════════════════════════════════════════════════
+    // FORMAT DE RAPPORT UNIFIÉ — en-tête « Informations : » + phrase d'ouverture
+    // obligatoire, partagés par TOUS les modules d'intervention (standard,
+    // patrol, GND, CID). Une seule source de vérité, pas de duplication.
+    // ═══════════════════════════════════════════════════════════════════
+
+    // Nom de famille = mot(s) tout en majuscules dans « NOM Prénom » (parsing
+    // par détection des majuscules, décision validée). Ex. « OSMOND Rhett » →
+    // « OSMOND » ; « ESTRELLA SIERRA Elvira C. » → « ESTRELLA SIERRA ».
+    function lspdOfficerSurname(name) {
+        const caps = String(name || '').match(/\b[A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ'’-]+\b/g);
+        return (caps && caps.length) ? caps.join(' ') : String(name || '').trim();
+    }
+    // « GRADE NOM Prénom » (ordre validé : nom de famille en premier, tel que
+    // le roster le stocke déjà).
+    function lspdOfficerFull(a) {
+        return `${(a && a.grade) || 'Officier'} ${(a && a.name) || ''}`.trim();
+    }
+    // Agents sélectionnés (objets {grade,name,matricule}) pour un module.
+    function lspdSelectedRoster(moduleKey) {
+        return (state.selectedAgents[moduleKey] || [])
+            .filter(i => i < state.roster.length)
+            .map(i => state.roster[i]);
+    }
+    // « du GRADE NOM Prénom, du … et du … » — composition d'une patrouille.
+    function lspdPatrolComposition(agents) {
+        const parts = (agents || []).map(a => 'du ' + lspdOfficerFull(a));
+        if (parts.length === 0) return "de l'unité en service";
+        if (parts.length === 1) return parts[0];
+        return parts.slice(0, -1).join(', ') + ' et ' + parts[parts.length - 1];
+    }
+    // Phrase d'ouverture OBLIGATOIRE — présent, 1re personne du pluriel
+    // (« nous répondons »), exception voulue conservée dans tous les modules.
+    function lspdBuildIntro(date, time, agents, motif) {
+        return `Le ${date} à ${time} lors d'une patrouille composée ${lspdPatrolComposition(agents)} nous répondons à un appel pour ${motif || 'une intervention'}.`;
+    }
+    // Seconde patrouille agissant en parallèle (composition + action différentes).
+    function lspdSecondPatrolSentence(agents, action) {
+        if (!agents || !agents.length || !action) return '';
+        return `Simultanément, la patrouille composée ${lspdPatrolComposition(agents)} a ${action}.`;
+    }
+    // En-tête commun. Champs optionnels absents → « NEANT » (comme la référence).
+    function lspdBuildReportHeader(d) {
+        let h = 'Informations :\n\n';
+        h += `Date et heure des faits : Le ${d.date} vers ${d.time}\n`;
+        h += `Lieu des faits : ${d.location || 'NEANT'}\n`;
+        h += `Heure d'interpellation : ${d.arrestTime || 'NEANT'}\n`;
+        h += `Procureur en charge : ${d.prosecutor || 'NEANT'}\n`;
+        h += 'Corps du rapport :\n\n';
+        return h;
+    }
+
     function lspdBuildReportBlock(opts) {
-        const matriculesInline = (opts.matricules && opts.matricules.length) ? lspdJoinFr(opts.matricules) : '';
-        const officersStr = matriculesInline || 'Non communiqué.';
-        const unitUpper = (opts.unitCode || 'Lincoln').toUpperCase();
-        // Le récit de l'entretien guidé est autonome (« Mon unité, composée de… ») :
-        // on ne le préfixe pas, sinon l'ouverture serait dupliquée.
-        const opening = opts.selfNarrative
-            ? opts.narrative
-            : (matriculesInline
-                ? `Nous, officiers composant l'unité ${unitUpper} (${matriculesInline}), ${opts.narrative}`
-                : `Nous, officiers composant l'unité ${unitUpper}, ${opts.narrative}`);
-        const totalFine = lspdTotalFine(opts.infractions);
-        let block = '';
-        block += `Date et heure de l'incident : ${opts.date} à ${opts.time}\n`;
-        block += `Lieu de l'incident : ${opts.location || 'Non communiqué.'}\n`;
-        block += `Nom du suspect : ${opts.suspectName || 'Non communiqué.'}\n`;
-        block += `Heure des droits Miranda : ${opts.mirandaTime || '-'}\n`;
-        block += `Officiers impliqués : ${officersStr}\n`;
-        block += `Description des faits :\n`;
-        block += `${opening}\n`;
-        block += `Véhicules et plaques : ${opts.vehicleStr || 'Non communiqué.'}\n`;
-        block += `Infractions constatées :\n`;
-        block += `${lspdFormatInfractionsList(opts.infractions)}\n`;
-        block += `\n`;
-        block += `Amendes totales : ${totalFine}$`;
-        return sanitizeRadioCodes(block);
+        const header = lspdBuildReportHeader({
+            date: opts.date, time: opts.time, location: opts.location,
+            arrestTime: opts.arrestTime, prosecutor: opts.prosecutor
+        });
+        // Ouverture : phrase obligatoire (sauf récit autonome de l'entretien
+        // guidé, qui porte encore la sienne — cas supprimé avec interview.js).
+        const intro = opts.selfNarrative ? '' : lspdBuildIntro(opts.date, opts.time, opts.agents || [], opts.motif);
+        let body = opts.selfNarrative ? opts.narrative : `${intro} ${opts.narrative}`.trim();
+        if (opts.vehicleStr && opts.vehicleStr !== 'Non communiqué.') {
+            body += `\n\nVéhicule impliqué : ${opts.vehicleStr}.`;
+        }
+        if (opts.infractions && opts.infractions.length) {
+            body += `\n\nCharges retenues :\n${lspdFormatInfractionsList(opts.infractions)}\n\nAmende totale : ${lspdTotalFine(opts.infractions)}$`;
+        }
+        return sanitizeRadioCodes(header + body);
     }
 
     // Assemble plusieurs blocs (un par suspect) séparés par une ligne vide
@@ -1531,32 +1573,9 @@
         }
         const tenCodes = state.patrol.tenCodes || [];
         const sentences = [];
-        const codeOpener = {
-            '10-31': "avons été appelés en urgence suite à un signalement de coups de feu",
-            '10-32': "sommes intervenus en urgence, sirènes et gyrophares enclenchés, sur une fusillade active",
-            '10-37': "avons été dépêchés sur un cambriolage en cours",
-            '10-38': "avons procédé à un contrôle routier",
-            '10-40': "avons été dépêchés pour un braquage de supérette",
-            '10-50': "avons été dépêchés sur un accident de la circulation",
-            '10-51': "sommes intervenus en urgence absolue sur un accident grave",
-            '10-52': "avons été dépêchés en assistance à un appel médical d'urgence",
-            '10-55': "avons engagé une poursuite suite à un délit de fuite",
-            '10-56': "sommes intervenus suite à un refus d'obtempérer",
-            '10-57': "sommes intervenus suite au signalement d'un vol de véhicule",
-            '10-60': "avons été appelés pour intervenir suite à un signalement concernant une possible vente de stupéfiants",
-            '10-61': "sommes intervenus en urgence absolue sur un braquage de banque",
-            '10-62': "avons été dépêchés sur un braquage de bijouterie",
-            '10-74': "sommes intervenus pour un racket / smash and grab",
-            '10-14': "avons été mobilisés pour assurer l'escorte d'un convoi",
-            '10-27': "sommes intervenus à la recherche d'un sujet activement recherché",
-            '10-29': "avons procédé à une vérification de mandat et de dossier citoyen",
-            '10-35': "avons répondu à une demande de renfort émise par une unité sur le terrain",
-            'DV': "sommes intervenus suite à un signalement de violences domestiques",
-            'DOA': "avons été dépêchés sur la découverte d'un corps sans vie",
-            'SPEC': "avons été mobilisés pour la prise en charge d'un incident spécial"
-        };
-        const opener = (tenCodes[0] && codeOpener[tenCodes[0]]) || "sommes intervenus suite à un appel du dispatch";
-        sentences.push(`${opener}${locationLabel ? ` dans le secteur de ${locationLabel}` : ''}.`);
+        // L'ouverture (« nous répondons à un appel pour… ») est portée par la
+        // phrase obligatoire (lspdBuildIntro), insérée en amont par
+        // lspdBuildReportBlock. Le récit démarre donc à l'arrivée sur les lieux.
         for (let i = 1; i < tenCodes.length; i++) {
             const transKey = `${tenCodes[i - 1]}->${tenCodes[i]}`;
             const trans = DB.transitionPhrases[transKey];
@@ -1614,7 +1633,7 @@
 
         const miranda = state.patrol.tags.miranda || [];
         if (miranda.includes('Droits Miranda lus et compris')) {
-            sentences.push(`Les droits Miranda ont été lus et compris par ${suspRef}.`);
+            sentences.push(`Les avertissements Miranda ont été lus et compris par ${suspRef}.`);
         }
         if (miranda.includes('Demande un avocat')) sentences.push(`${suspRef} a demandé un avocat pendant son arrestation.`);
         if (miranda.includes('Invoque le droit au silence')) sentences.push(`${suspRef} a invoqué son droit au silence.`);
@@ -1634,7 +1653,7 @@
 
     function lspdBuildNarcNarrative(suspect, locationLabel, opType) {
         const sentences = [];
-        sentences.push(`avons été déployés dans le cadre d'une opération « ${opType || 'GND'} »${locationLabel ? ` dans le secteur de ${locationLabel}` : ''}.`);
+        // Ouverture portée par la phrase obligatoire (lspdBuildIntro) en amont.
         const intel = state.narcotics.intelSources || [];
         if (intel.length) sentences.push(`L'opération s'appuyait sur les sources de renseignement suivantes : ${intel.join(', ').toLowerCase()}.`);
         const intelDetail = ($('#narcIntelDetail') && $('#narcIntelDetail').value.trim()) || '';
@@ -1665,7 +1684,7 @@
     function lspdBuildCidNarrative(suspect, locationLabel) {
         const sentences = [];
         const crimeType = (state.cid && state.cid.crimeType) || [];
-        sentences.push(`avons été dépêchés sur la scène de crime${locationLabel ? ` située à ${locationLabel}` : ''}${crimeType.length ? ` suite à un signalement de ${crimeType.join(' et ').toLowerCase()}` : ''}.`);
+        // Ouverture portée par la phrase obligatoire (lspdBuildIntro) en amont.
         const ballistics = (state.cid && state.cid.ballistics) || [];
         if (ballistics.length) sentences.push(`L'analyse balistique préliminaire a révélé : ${ballistics.join(', ').toLowerCase()}.`);
         const shellCount = $('#cidShellCount') ? ($('#cidShellCount').value || '0') : '0';
@@ -2397,6 +2416,10 @@
     function updateIntroPreview() {
         const codes = state.patrol.tenCodes;
         const preview = $('#introPreview');
+        // Panneau d'aperçu d'intro retiré d'une refonte précédente : sans cet
+        // élément, la fonction devient un no-op (évite un TypeError qui cassait
+        // le clic sur la nature d'intervention). Voir récap (code orphelin).
+        if (!preview) return;
         if (codes.length > 0) {
             // Build a chained intro narrative
             let introText = DB.introMapping[codes[0]] || '';
@@ -2973,6 +2996,27 @@
         ivRender();
     }
 
+    // Motif d'appel (nom, pour « nous répondons à un appel pour … ») déduit du
+    // premier code d'intervention sélectionné.
+    function lspdPatrolMotif() {
+        const codeMotif = {
+            '10-31': "un signalement de coups de feu", '10-32': "une fusillade active",
+            '10-37': "un cambriolage en cours", '10-38': "un contrôle routier",
+            '10-40': "un braquage de supérette", '10-50': "un accident de la circulation",
+            '10-51': "un accident grave", '10-52': "une assistance médicale d'urgence",
+            '10-55': "un délit de fuite", '10-56': "un refus d'obtempérer",
+            '10-57': "un vol de véhicule", '10-60': "une possible vente de stupéfiants",
+            '10-61': "un braquage de banque", '10-62': "un braquage de bijouterie",
+            '10-74': "un racket / smash and grab", '10-14': "l'escorte d'un convoi",
+            '10-27': "un sujet activement recherché", '10-29': "une vérification de mandat et de dossier citoyen",
+            '10-35': "une demande de renfort d'une unité sur le terrain",
+            'DV': "un signalement de violences domestiques", 'DOA': "la découverte d'un corps sans vie",
+            'SPEC': "la prise en charge d'un incident spécial"
+        };
+        const first = (state.patrol.tenCodes || [])[0];
+        return (first && codeMotif[first]) || "une intervention";
+    }
+
     function generatePatrolReport() {
         // P4-7 — Si l'utilisateur a édité manuellement l'aperçu dans la modale
         // Récap, on retourne ce texte tel quel (et on consomme le hook).
@@ -2996,6 +3040,10 @@
         const matricules = lspdMatriculesFor('patrol');
         const mirandaTime = lspdMirandaTime('patrol', 'patrolDatetime');
         const vehicleStr = lspdFormatVehiclePatrol();
+        const agents = lspdSelectedRoster('patrol');
+        const motif = lspdPatrolMotif();
+        const arrestTime = ($('#patrolArrestTime') && $('#patrolArrestTime').value.trim()) || 'NEANT';
+        const prosecutor = ($('#patrolProsecutor') && $('#patrolProsecutor').value.trim()) || 'NEANT';
 
         const allSuspects = getSuspectsData('patrolSuspectCards');
         const realSuspects = allSuspects.filter(s => (s.role || 'Suspect') === 'Suspect');
@@ -3007,9 +3055,7 @@
         if (realSuspects.length === 0) {
             const narrative = lspdBuildPatrolNarrative(null, location);
             return lspdBuildReportBlock({
-                date, time, location,
-                suspectName: 'Non communiqué.',
-                mirandaTime, matricules, unitCode: unit,
+                date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr, selfNarrative,
                 infractions: bySuspect[0] || []
             });
@@ -3019,9 +3065,7 @@
         const blocks = realSuspects.map((suspect, idx) => {
             const narrative = lspdBuildPatrolNarrative(suspect, location);
             return lspdBuildReportBlock({
-                date, time, location,
-                suspectName: lspdSuspectFullName(suspect) || 'Non communiqué.',
-                mirandaTime, matricules, unitCode: unit,
+                date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr, selfNarrative,
                 infractions: bySuspect[idx] || []
             });
@@ -3073,6 +3117,10 @@
         const mirandaTime = '-';
         const vehicleStr = 'Non communiqué.';
         const opType = state.narcotics.operationType || 'GND';
+        const agents = lspdSelectedRoster('narcotics');
+        const motif = "une opération de lutte contre les stupéfiants";
+        const arrestTime = ($('#narcArrestTime') && $('#narcArrestTime').value.trim()) || 'NEANT';
+        const prosecutor = ($('#narcProsecutor') && $('#narcProsecutor').value.trim()) || 'NEANT';
 
         const allSuspects = getSuspectsData('narcSuspectCards');
         const realSuspects = allSuspects.filter(s => (s.role || 'Suspect') === 'Suspect');
@@ -3081,9 +3129,7 @@
         if (realSuspects.length === 0) {
             const narrative = lspdBuildNarcNarrative(null, location, opType);
             return lspdBuildReportBlock({
-                date, time, location,
-                suspectName: 'Non communiqué.',
-                mirandaTime, matricules, unitCode: unit,
+                date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr,
                 infractions: bySuspect[0] || []
             });
@@ -3092,9 +3138,7 @@
         const blocks = realSuspects.map((suspect, idx) => {
             const narrative = lspdBuildNarcNarrative(suspect, location, opType);
             return lspdBuildReportBlock({
-                date, time, location,
-                suspectName: lspdSuspectFullName(suspect) || 'Non communiqué.',
-                mirandaTime, matricules, unitCode: unit,
+                date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr,
                 infractions: bySuspect[idx] || []
             });
@@ -3135,6 +3179,11 @@
         const matricules = lspdMatriculesFor('cid');
         const mirandaTime = '-';
         const vehicleStr = 'Non communiqué.';
+        const agents = lspdSelectedRoster('cid');
+        const crimeType = (state.cid && state.cid.crimeType) || [];
+        const motif = crimeType.length ? crimeType.join(' et ').toLowerCase() : "les faits constatés sur une scène de crime";
+        const arrestTime = ($('#cidArrestTime') && $('#cidArrestTime').value.trim()) || 'NEANT';
+        const prosecutor = ($('#cidProsecutor') && $('#cidProsecutor').value.trim()) || 'NEANT';
         // CID n'utilise pas de penal calculator → infractions vides
         const allSuspects = getSuspectsData('cidSuspectCards');
         const realSuspects = allSuspects.filter(s => (s.role || 'Suspect') === 'Suspect');
@@ -3142,9 +3191,7 @@
         if (realSuspects.length === 0) {
             const narrative = lspdBuildCidNarrative(null, location);
             return lspdBuildReportBlock({
-                date, time, location,
-                suspectName: 'Non communiqué.',
-                mirandaTime, matricules, unitCode: 'CID',
+                date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr,
                 infractions: []
             });
@@ -3153,9 +3200,7 @@
         const blocks = realSuspects.map((suspect) => {
             const narrative = lspdBuildCidNarrative(suspect, location);
             return lspdBuildReportBlock({
-                date, time, location,
-                suspectName: lspdSuspectFullName(suspect) || 'Non communiqué.',
-                mirandaTime, matricules, unitCode: 'CID',
+                date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr,
                 infractions: []
             });
@@ -4664,13 +4709,8 @@
             fields: [
                 { key: 'motif', type: 'text', label: "Motif de l'intervention", placeholder: "Ex : refus d'obtempérer, différend, contrôle routier…" }
             ],
-            render: (d, ctx) => {
-                const verb = ctx.plural ? 'ont été dépêchés' : 'a été dépêché';
-                const motif = d.motif ? ` pour ${d.motif}` : " à la suite d'un appel du dispatch";
-                const lieu = ctx.location ? ` à hauteur de ${ctx.location}` : ' sur les lieux';
-                const arrivee = ctx.plural ? 'leur arrivée' : 'son arrivée';
-                return `${ctx.subject} ${verb}${lieu}${motif}. Les premières constatations ont été effectuées dès ${arrivee}.`;
-            }
+            // Phrase d'ouverture OBLIGATOIRE (partagée avec patrol/GND/CID).
+            render: (d, ctx) => lspdBuildIntro(ctx.date, ctx.time, ctx.agents, d.motif || 'une intervention')
         },
         {
             id: 'poursuite',
@@ -4733,12 +4773,15 @@
             label: 'Sécurisation & premiers secours',
             hint: 'Périmètre sécurisé, prise en charge médicale immédiate',
             fields: [
-                { key: 'etat', type: 'text', label: "État de l'individu (optionnel)", placeholder: "Ex : conscient, blessé au bras, en état d'ébriété…" }
+                { key: 'etat', type: 'text', label: "État de l'individu (optionnel)", placeholder: "Ex : conscient, blessé au bras, en état d'ébriété…" },
+                { key: 'patrol2', type: 'text', label: 'Patrouille secondaire — grades + noms (optionnel)', placeholder: 'Ex : du Police Officer II Nolan Prescott et du Police Officer II Donovan Lyncher' },
+                { key: 'action2', type: 'text', label: 'Action de la patrouille secondaire', placeholder: 'Ex : sécurisé le périmètre en bloquant la circulation environnante' }
             ],
             render: (d, ctx) => {
                 let s = 'Le périmètre a été sécurisé';
                 if (d.etat) s += `, l'individu étant ${d.etat}`;
                 s += `. Les premiers gestes de secours ont été prodigués par ${ctx.subjectLower} dans l'attente des services médicaux.`;
+                if (d.patrol2 && d.action2) s += ` Simultanément, la patrouille composée ${d.patrol2} a ${d.action2}.`;
                 return s;
             }
         },
@@ -4796,13 +4839,19 @@
                     "de manière incidente à l'arrestation",
                     "sur le fondement d'un mandat de perquisition"
                 ] },
-                { key: 'objets', type: 'text', label: 'Objet(s) saisi(s) (optionnel)', placeholder: 'Ex : une arme de poing, 3 sachets de stupéfiants…' }
+                { key: 'objets', type: 'text', label: 'Objet(s) saisi(s) (optionnel)', placeholder: 'Ex : une arme de poing, 3 sachets de stupéfiants…' },
+                { key: 'arme', type: 'text', label: 'Arme saisie — modèle (optionnel)', placeholder: 'Ex : Glock 17' },
+                { key: 'armeId', type: 'text', label: 'Arme saisie — identifiant / n° de série (optionnel)', placeholder: 'Ex : 1783196078854' }
             ],
             render: (d, ctx) => {
                 const base = d.base || "au titre d'une palpation de sécurité";
                 const verb = ctx.plural ? 'ont procédé' : 'a procédé';
                 let s = `À l'issue de l'interpellation, ${ctx.subjectLower} ${verb} à une fouille ${base}.`;
-                if (d.objets) s += ` Cette fouille a permis la saisie ${deElide(d.objets)}.`;
+                if (d.objets) {
+                    s += ` Cette fouille a permis la saisie ${deElide(d.objets)}`;
+                    if (d.arme) s += ` ( Arme : ${d.arme}${d.armeId ? ` - Identifiant : ${d.armeId}` : ''} )`;
+                    s += '.';
+                }
                 return s;
             }
         },
@@ -4826,12 +4875,16 @@
             fields: [
                 { key: 'moment', type: 'select', label: 'Moment de la notification', options: [
                     "au moment de l'interpellation",
-                    'de manière différée, au poste'
+                    'de manière différée, au poste',
+                    'après prise en charge médicale (individu initialement inconscient)'
                 ] }
             ],
             render: (d) => {
                 const m = d.moment || "au moment de l'interpellation";
-                return `Les droits Miranda ont été notifiés à l'individu ${m}, lequel a déclaré les avoir compris.`;
+                if (m.indexOf('inconscient') !== -1) {
+                    return "L'individu étant inconscient, ses avertissements Miranda n'ont pas pu lui être notifiés, celui-ci n'étant pas en mesure de les comprendre dans cet état. Ils lui ont été lus et compris une fois pris en charge et jugé apte par le personnel médical.";
+                }
+                return `Les avertissements Miranda ont été notifiés à l'individu ${m}, lequel a déclaré les avoir compris.`;
             }
         },
         {
@@ -4903,14 +4956,21 @@
     }
 
     function rfContext() {
-        const names = rfOfficerNames();
-        const subject = officerSubject(names);
+        const agents = lspdSelectedRoster('standard');
+        // Corps du récit : « L'officier {NOM} » (nom de famille seul) une fois les
+        // agents introduits par la phrase d'ouverture (grade + nom complet).
+        const subject = officerSubject(agents.map(a => lspdOfficerSurname(a.name)));
+        const dtRaw = ($('#rfDatetime') && $('#rfDatetime').value) || '';
+        const dtObj = dtRaw ? new Date(dtRaw) : new Date();
         return {
+            agents,
             subject,
             subjectLower: rfLowerFirst(subject),
-            plural: names.length >= 2,
+            plural: agents.length >= 2,
             location: ($('#rfLocation') && $('#rfLocation').value.trim()) || '',
-            suspectName: rfSuspectName()
+            suspectName: rfSuspectName(),
+            date: lspdFormatDate(dtObj),
+            time: lspdFormatTime(dtObj)
         };
     }
 
@@ -4923,26 +4983,17 @@
         const { all } = lspdCollectInfractions('standardPenalInfractions', 1);
         if (!all.length) return '';
         const total = lspdTotalFine(all).toLocaleString('fr-FR');
-        return `\n\n═══ CHARGES RETENUES ═══\n${lspdFormatInfractionsList(all)}\n\nAmende totale : ${total}$`;
+        return `\n\nCharges retenues :\n${lspdFormatInfractionsList(all)}\n\nAmende totale : ${total}$`;
     }
 
     function rfBuildReport() {
         const ctx = rfContext();
-        const dtRaw = ($('#rfDatetime') && $('#rfDatetime').value) || '';
-        const dtObj = dtRaw ? new Date(dtRaw) : new Date();
-        const date = lspdFormatDate(dtObj);
-        const time = lspdFormatTime(dtObj);
-        const arrestTime = ($('#rfArrestTime') && $('#rfArrestTime').value.trim()) || '-';
-        const prosecutor = ($('#rfProsecutor') && $('#rfProsecutor').value.trim()) || 'Non communiqué.';
-        const officers = rfOfficerNames();
-
-        let head = '';
-        head += `Date et heure des faits : ${date} à ${time}\n`;
-        head += `Lieu : ${ctx.location || 'Non communiqué.'}\n`;
-        head += `Heure d'interpellation : ${arrestTime}\n`;
-        head += `Procureur en charge : ${prosecutor}\n`;
-        head += `Individu mis en cause : ${ctx.suspectName || 'Non communiqué.'}\n`;
-        head += `Rédigé par : ${officers.length ? lspdJoinFr(officers) : 'Non communiqué.'}`;
+        const arrestTime = ($('#rfArrestTime') && $('#rfArrestTime').value.trim()) || 'NEANT';
+        const prosecutor = ($('#rfProsecutor') && $('#rfProsecutor').value.trim()) || 'NEANT';
+        // En-tête commun (format unifié partagé avec patrol/GND/CID).
+        const header = lspdBuildReportHeader({
+            date: ctx.date, time: ctx.time, location: ctx.location, arrestTime, prosecutor
+        });
 
         const paras = [];
         RAPPORT_BLOCKS.forEach(block => {
@@ -4955,10 +5006,7 @@
             ? paras.join('\n\n')
             : '(Cochez des blocs de procédure pour composer le corps du rapport.)';
 
-        const report =
-            `═══ INFORMATIONS ═══\n${head}\n\n` +
-            `═══ CORPS DU RAPPORT ═══\n${body}`;
-        return sanitizeRadioCodes(report + rfChargesSection());
+        return sanitizeRadioCodes(header + body + rfChargesSection());
     }
 
     // Rebâtit l'aperçu, sauf si l'utilisateur l'a édité manuellement (dirty).

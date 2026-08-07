@@ -39,6 +39,54 @@
             { code: 'Moto', desc: 'Unité moto' },
             { code: 'Metro', desc: 'S.R.T / SWAT' }
         ],
+        // Noms de rues officiels de GTA V (extraits des fichiers du jeu), déjà
+        // dédupliqués et triés. Servent uniquement de suggestions d'autocomplétion
+        // sur les champs « Lieu » — le champ reste en texte libre (lieux RP custom
+        // autorisés). Utilisé pour peupler le <datalist> #gtaStreetsList.
+        gtaStreets: [
+            'Abattoir Ave', 'Abe Milton Pkwy', 'Ace Jones Dr', 'Adam\'s Apple Blvd', 'Aguja St',
+            'Algonquin Blvd', 'Alhambra Dr', 'Alta Pl', 'Alta St', 'Amarillo Vista', 'Amarillo Way',
+            'Americano Way', 'Armadillo Ave', 'Atlee St', 'Autopia Pkwy', 'Bait St', 'Banham Canyon Dr',
+            'Barbareno Rd', 'Bay City Ave', 'Bay City Incline', 'Baytree Canyon Rd', 'Boulevard Del Perro',
+            'Bridge St', 'Brouge Ave', 'Buccaneer Way', 'Buen Vino Rd', 'Caesars Place', 'Calafia Rd',
+            'Calais Ave', 'Capital Blvd', 'Carcer Way', 'Carson Ave', 'Cascabel Ave', 'Cassidy Trail',
+            'Cat-Claw Ave', 'Catfish View', 'Cavalry Blvd', 'Chianski Passage', 'Cholla Rd',
+            'Cholla Springs Ave', 'Chum St', 'Chupacabra St', 'Clinton Ave', 'Cockingend Dr',
+            'Conquistador St', 'Cortes St', 'Cougar Ave', 'Covenant Ave', 'Cox Way', 'Crusade Rd',
+            'Davis Ave', 'Decker St', 'Del Perro Fwy', 'Didion Dr', 'Dorset Dr', 'Dorset Pl', 'Dry Dock St',
+            'Duluoz Ave', 'Dunstable Dr', 'Dunstable Ln', 'Dutch London St', 'East Galileo Ave',
+            'East Joshua Road', 'East Mirror Dr', 'Eastbourne Way', 'Eclipse Blvd', 'Edwood Way',
+            'El Burro Blvd', 'El Gordo Dr', 'El Rancho Blvd', 'Elgin Ave', 'Elysian Fields Fwy',
+            'Equality Way', 'Exceptionalists Way', 'Fantastic Pl', 'Fenwell Pl', 'Fort Zancudo Approach Rd',
+            'Forum Dr', 'Fudge Ln', 'Galileo Park', 'Galileo Rd', 'Gentry Lane', 'Ginger St', 'Glory Way',
+            'Goma St', 'Grapeseed Ave', 'Grapeseed Main St', 'Great Ocean Hwy', 'Greenwich Pkwy',
+            'Greenwich Pl', 'Greenwich Way', 'Grove St', 'Hanger Way', 'Hangman Ave', 'Hardy Way',
+            'Hawick Ave', 'Heritage Way', 'Hillcrest Ave', 'Hillcrest Ridge Access Rd', 'Imagination Court',
+            'Ineseno Road', 'Innocence Blvd', 'Integrity Way', 'Invention Court', 'Jamestown St', 'Joad Ln',
+            'Joshua Rd', 'Kimble Hill Dr', 'Kortz Dr', 'La Puerta Fwy', 'Labor Pl', 'Laguna Pl',
+            'Lake Vinewood Dr', 'Lake Vinewood Est', 'Las Lagunas Blvd', 'Lesbos Ln', 'Liberty St',
+            'Lindsay Circus', 'Little Bighorn Ave', 'Lolita Ave', 'Los Santos Freeway', 'Low Power St',
+            'Macdonald St', 'Mad Wayne Thunder Dr', 'Magellan Ave', 'Marathon Ave', 'Marina Dr',
+            'Marlowe Dr', 'Melanoma St', 'Meringue Ln', 'Meteor St', 'Milton Rd', 'Miriam Turner Overpass',
+            'Mirror Park Blvd', 'Mirror Pl', 'Morningwood Blvd', 'Mountain View Dr', 'Movie Star Way',
+            'Mt Haan Dr', 'Mt Haan Rd', 'Mt Vinewood Dr', 'Mutiny Rd', 'New Empire Way', 'Nikola Ave',
+            'Nikola Pl', 'Niland Ave', 'Normandy Dr', 'North Archer Ave', 'North Calafia Way',
+            'North Conker Ave', 'North Rockford Dr', 'North Sheldon Ave', 'Nowhere Rd', 'O\'Neil Way',
+            'Occupation Ave', 'Olympic Fwy', 'Orchardville Ave', 'Paleto Blvd', 'Palomino Ave',
+            'Palomino Fwy', 'Panorama Dr', 'Peaceful St', 'Perth St', 'Picture Perfect Drive', 'Plaice Pl',
+            'Playa Vista', 'Popular St', 'Portola Dr', 'Power St', 'Procopio Dr', 'Procopio Promenade',
+            'Prosperity St', 'Prosperity Street Promenade', 'Pyrite Ave', 'Raton Pass', 'Red Desert Ave',
+            'Richman St', 'Rockford Dr', 'Route 68', 'Route 68 Approach', 'Roy Lowenstein Blvd', 'Rub St',
+            'Sam Austin Dr', 'San Andreas Ave', 'San Vitus Blvd', 'Sandcastle Way', 'Seaview Rd',
+            'Senora Fwy', 'Senora Rd', 'Senora Way', 'Shank St', 'Signal St', 'Sinner St', 'Sinners Passage',
+            'Smoke Tree Rd', 'South Arsenal St', 'South Boulevard Del Perro', 'South Mo Milton Dr',
+            'South Rockford Dr', 'South Shambles St', 'Spanish Ave', 'Steele Way', 'Strangeways Dr',
+            'Strawberry Ave', 'Supply St', 'Sustancia Rd', 'Swiss St', 'Tackle St', 'Tangerine St',
+            'Tongva Dr', 'Tower Way', 'Tug St', 'Union Rd', 'Utopia Gardens', 'Vespucci Blvd',
+            'Vinewood Blvd', 'Vinewood Park Dr', 'Vitus St', 'Voodoo Place', 'West Eclipse Blvd',
+            'West Galileo Ave', 'West Mirror Drive', 'Whispymound Dr', 'Wild Oats Dr', 'York St',
+            'Zancudo Ave', 'Zancudo Barranca', 'Zancudo Grande Valley', 'Zancudo Rd'
+        ],
         // Codes radio conformes au Manuel de Révision LSPD (Code 1 → 7, 4 Adam).
         statusCodes: [
             { code: 'Code 1', desc: 'Déplacement normal — sans gyrophare ni sirène' },
@@ -3556,9 +3604,27 @@
             zoom: 3,
             preferCanvas: true
         });
-        L.tileLayer('https://soukapic.github.io/LSPD-Carte-10-20/mapStyles/styleSatelite/{z}/{x}/{y}.jpg', {
-            minZoom: 0, maxZoom: 8, noWrap: true, attribution: 'Online map GTA V'
-        }).addTo(gtaMap);
+        // Tuiles de carte GTA V hébergées par le projet soukapic/LSPD-Carte-10-20
+        // (GitHub Pages, https://soukapic.github.io/LSPD-Carte-10-20). Même source
+        // déjà utilisée en production par cette app, et seule origine autorisée en
+        // img-src par la CSP → aucun asset local à héberger, chargement lazy (les
+        // tuiles ne sont demandées qu'à l'ouverture de la carte). Deux styles :
+        //  · Atlas  = carte façon plan papier AVEC noms de rues visibles (défaut,
+        //             pour repérer une rue à saisir dans le champ Lieu) ;
+        //  · Satellite = vue aérienne (les repères dorés ressortent mieux dessus).
+        const TILE_BASE = 'https://soukapic.github.io/LSPD-Carte-10-20/mapStyles/';
+        const atlasLayer = L.tileLayer(TILE_BASE + 'styleAtlas/{z}/{x}/{y}.jpg', {
+            minZoom: 0, maxZoom: 8, noWrap: true, attribution: 'GTA V map — soukapic/LSPD-Carte-10-20'
+        });
+        const satelliteLayer = L.tileLayer(TILE_BASE + 'styleSatelite/{z}/{x}/{y}.jpg', {
+            minZoom: 0, maxZoom: 8, noWrap: true, attribution: 'GTA V map — soukapic/LSPD-Carte-10-20'
+        });
+        atlasLayer.addTo(gtaMap); // défaut : Atlas (noms de rues lisibles)
+        L.control.layers(
+            { 'Atlas (noms de rues)': atlasLayer, 'Satellite': satelliteLayer },
+            null,
+            { collapsed: false }
+        ).addTo(gtaMap);
         GTA_LOCATIONS.forEach(function(loc) {
             const marker = L.circleMarker([loc.lat, loc.lng], {
                 radius: 7,
@@ -3582,6 +3648,22 @@
                 setTimeout(function() { $('#gtaMapModal').classList.remove('active'); }, 600);
             });
         });
+    }
+
+    // Peuple le <datalist> partagé avec les rues officielles GTA V (DB.gtaStreets).
+    // Une seule liste réutilisée par tous les champs « Lieu » via list="gtaStreetsList".
+    // L'autocomplétion suggère sans imposer : le champ accepte toujours du texte libre.
+    function initStreetAutocomplete() {
+        const list = $('#gtaStreetsList');
+        if (!list || !Array.isArray(DB.gtaStreets)) return;
+        const frag = document.createDocumentFragment();
+        DB.gtaStreets.forEach(function(street) {
+            const opt = document.createElement('option');
+            opt.value = street;
+            frag.appendChild(opt);
+        });
+        list.innerHTML = '';
+        list.appendChild(frag);
     }
 
     function initMapButtons() {
@@ -5075,6 +5157,9 @@
 
         // Initialize map buttons
         initMapButtons();
+
+        // Populate street autocomplete (datalist partagé)
+        initStreetAutocomplete();
 
         // Initialize body map (anatomical zones)
         initBodyMap();

@@ -195,7 +195,10 @@
                             </div>
                             <div class="form-group full-width">
                                 <label>Lieu</label>
-                                <input type="text" id="rfLocation" placeholder="Ex : Route 68, Sandy Shores">
+                                <div class="location-row">
+                                    <input type="text" id="rfLocation" placeholder="Ex : Route 68, Sandy Shores" list="gtaStreetsList" autocomplete="off">
+                                    <button type="button" class="btn-map-pick" data-target="rfLocation" title="Choisir sur la carte GTA V">🗺</button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Individu — Nom</label>
@@ -320,7 +323,7 @@
                     <div class="form-group">
                         <label>Localisation</label>
                         <div class="location-row">
-                            <input type="text" id="patrolLocation" placeholder="Ex: Route 68, Sandy Shores">
+                            <input type="text" id="patrolLocation" placeholder="Ex: Route 68, Sandy Shores" list="gtaStreetsList" autocomplete="off">
                             <button type="button" class="btn-map-pick" data-target="patrolLocation" title="Choisir sur la carte GTA V">🗺</button>
                         </div>
                     </div>
@@ -703,7 +706,7 @@
                     <div class="form-group">
                         <label>Localisation de l'Opération</label>
                         <div class="location-row">
-                            <input type="text" id="narcLocation" placeholder="Ex: Forum Drive / Grove Street, Davis">
+                            <input type="text" id="narcLocation" placeholder="Ex: Forum Drive / Grove Street, Davis" list="gtaStreetsList" autocomplete="off">
                             <button type="button" class="btn-map-pick" data-target="narcLocation" title="Choisir sur la carte GTA V">🗺</button>
                         </div>
                     </div>
@@ -967,7 +970,7 @@
                     <div class="form-group">
                         <label>Localisation de la Scène</label>
                         <div class="location-row">
-                            <input type="text" id="cidLocation" placeholder="Ex: Parking du Vanilla Unicorn">
+                            <input type="text" id="cidLocation" placeholder="Ex: Parking du Vanilla Unicorn" list="gtaStreetsList" autocomplete="off">
                             <button type="button" class="btn-map-pick" data-target="cidLocation" title="Choisir sur la carte GTA V">🗺</button>
                         </div>
                     </div>
@@ -1285,14 +1288,18 @@
         <div class="gta-map-modal">
             <div class="gta-map-header">
                 <div>
-                    <h3>🗺 Carte GTA V — Sélectionner une Position</h3>
-                    <span class="map-selected-info" id="mapSelectedInfo">Cliquez sur un marqueur pour sélectionner la position</span>
+                    <h3>🗺 Carte GTA V — Atlas & Repères</h3>
+                    <span class="map-selected-info" id="mapSelectedInfo">Vue Atlas : repérez le nom de la rue puis saisissez-le dans le champ Lieu. Cliquez un point connu pour le remplir directement.</span>
                 </div>
                 <button class="qa-remove" id="btnCloseGtaMap" title="Fermer">&times;</button>
             </div>
             <div id="gtaMap"></div>
         </div>
     </div>
+
+    <!-- Suggestions d'autocomplétion des champs « Lieu » (rues officielles GTA V,
+         peuplé au démarrage depuis DB.gtaStreets). Le champ reste en texte libre. -->
+    <datalist id="gtaStreetsList"></datalist>
 
     <!-- ═══════ MODAL: CLAUDE AI SETTINGS ═══════ -->
     <div class="modal-overlay" id="settingsModal">

@@ -525,8 +525,6 @@
             tenCode: null,
             tenCodes: [],
             tags: { suspect_state: [], impact_detail: [], agent_state: [], suspect_obs: [], behavior: [], aggressor: [], aggression_origin: [], suspect_flight: [], pursuit_end: [], force: [], tests: [], search_person: [], search_vehicle: [], miranda: [], medical_end: [] },
-            // Entretien guidé (interview.js) : scénario choisi + réponses.
-            interview: { scenario: null, answers: {} },
             pursuitEndLocation: '',
             anatomicalZones: [],
             vehicleColor: [],
@@ -1339,10 +1337,9 @@
             date: opts.date, time: opts.time, location: opts.location,
             arrestTime: opts.arrestTime, prosecutor: opts.prosecutor
         });
-        // Ouverture : phrase obligatoire (sauf récit autonome de l'entretien
-        // guidé, qui porte encore la sienne — cas supprimé avec interview.js).
-        const intro = opts.selfNarrative ? '' : lspdBuildIntro(opts.date, opts.time, opts.agents || [], opts.motif);
-        let body = opts.selfNarrative ? opts.narrative : `${intro} ${opts.narrative}`.trim();
+        // Ouverture : phrase obligatoire commune à tous les modules.
+        const intro = lspdBuildIntro(opts.date, opts.time, opts.agents || [], opts.motif);
+        let body = `${intro} ${opts.narrative}`.trim();
         if (opts.vehicleStr && opts.vehicleStr !== 'Non communiqué.') {
             body += `\n\nVéhicule impliqué : ${opts.vehicleStr}.`;
         }
@@ -1564,13 +1561,6 @@
     }
 
     function lspdBuildPatrolNarrative(suspect, locationLabel) {
-        // Entretien guidé prioritaire : il produit un récit complet et autonome
-        // (il porte sa propre phrase d'ouverture « Mon unité, composée de… »).
-        const iv = state.patrol.interview;
-        if (iv && iv.scenario && window.LSPD_IV) {
-            const paras = window.LSPD_IV.narrate(iv.scenario, iv.answers, ivContext(suspect));
-            if (paras.length) return paras.join('\n\n');
-        }
         const tenCodes = state.patrol.tenCodes || [];
         const sentences = [];
         // L'ouverture (« nous répondons à un appel pour… ») est portée par la
@@ -2844,158 +2834,6 @@
     // PATROL REPORT
     // ═══════════════════════════════════════════════════════════════════
 
-    // ═══════════════════════════════════════════════════════════════════
-    // ENTRETIEN GUIDÉ — rendu + contexte narratif
-    // Les questions/récits vivent dans interview.js (données pures).
-    // ═══════════════════════════════════════════════════════════════════
-
-    const IV = window.LSPD_IV || null;
-
-    function ivState() {
-        if (!state.patrol.interview) state.patrol.interview = { scenario: null, answers: {} };
-        return state.patrol.interview;
-    }
-
-    // "du Sgt I LANGFORD Ryker et de l'agent IGNACIO Mendes"
-    function ivOfficers() {
-        const names = (state.selectedAgents.patrol || []).map(i => {
-            const a = state.roster[i];
-            if (!a) return null;
-            const grade = (a.grade || '').trim(), name = (a.name || '').trim();
-            if (!grade && !name) return null;
-            if (!grade) return `de ${name}`;
-            const art = /^[aeiouyéèêàâîïôhAEIOUYÉÈÊÀÂÎÏÔH]/.test(grade) ? "de l'" : "du ";
-            return `${art}${grade} ${name}`.trim();
-        }).filter(Boolean);
-        if (!names.length) return "de l'unité en patrouille";
-        if (names.length === 1) return names[0];
-        return names.slice(0, -1).join(', ') + ' et ' + names[names.length - 1];
-    }
-
-    function ivContext(suspect) {
-        const locEl = $('#patrolLocation');
-        const loc = locEl ? (locEl.value || '').trim() : '';
-        const v = (typeof getVehicleData === 'function') ? getVehicleData() : {};
-        const vd = [
-            v.model || null,
-            (v.color && v.color.length) ? `de couleur ${v.color.join('/').toLowerCase()}` : null
-        ].filter(Boolean).join(' ');
-        let susp = "l'individu mis en cause";
-        if (suspect && suspect.lastname) {
-            const civ = suspect.gender === 'Féminin' ? 'Mme' : 'M.';
-            susp = `${civ} ${(suspect.lastname || '').trim().toUpperCase()} ${lspdTitleCase((suspect.firstname || '').trim())}`.trim();
-        }
-        return {
-            officers: ivOfficers(),
-            locPhrase: loc ? `au niveau de ${loc}` : '',
-            vehicleDesc: vd || 'suspect',
-            suspect: susp
-        };
-    }
-
-    function ivRender() {
-        if (!IV || !$('#ivWrap')) return;
-        const st = ivState();
-        const scenEl = $('#ivScenarios'), body = $('#ivBody');
-        scenEl.innerHTML = Object.keys(IV.SCEN).map(k => {
-            const s = IV.SCEN[k];
-            return `<button type="button" class="iv-scen" data-scen="${k}">
-                <span class="iv-scen-ic">${s.icon}</span>
-                <span class="iv-scen-t">${escapeHtml(s.label)}</span></button>`;
-        }).join('');
-        if (!st.scenario || !IV.SCEN[st.scenario]) {
-            scenEl.hidden = false; body.hidden = true; return;
-        }
-        scenEl.hidden = true; body.hidden = false;
-        $('#ivScenLabel').textContent = `${IV.SCEN[st.scenario].icon} ${IV.SCEN[st.scenario].label}`;
-        ivRenderQuestions();
-    }
-
-    function ivRenderQuestions() {
-        const st = ivState();
-        if (!IV || !st.scenario) return;
-        const qs = IV.visibleQuestions(st.scenario, st.answers);
-        const host = $('#ivQuestions');
-        host.innerHTML = qs.map((q, i) => {
-            const ans = st.answers[q.id];
-            const done = Array.isArray(ans) ? ans.length > 0 : (ans != null && ans !== '');
-            let ctrl = '';
-            if (q.type === 'text') {
-                ctrl = `<input type="text" class="iv-text" data-q="${q.id}" value="${escapeHtml(ans || '')}" placeholder="${escapeHtml(q.placeholder || '')}" maxlength="120">`;
-            } else {
-                ctrl = '<div class="iv-opts">' + (q.answers || []).map(o => {
-                    const on = q.type === 'multi' ? (ans || []).indexOf(o.v) >= 0 : ans === o.v;
-                    return `<button type="button" class="iv-opt${on ? ' active' : ''}" data-q="${q.id}" data-v="${escapeHtml(o.v)}" data-type="${q.type}">${escapeHtml(o.l)}</button>`;
-                }).join('') + '</div>';
-                const sel = (q.answers || []).find(o => o.text && (q.type === 'multi' ? (ans || []).indexOf(o.v) >= 0 : ans === o.v));
-                if (sel) ctrl += `<input type="text" class="iv-text" data-q="${q.id}_text" value="${escapeHtml(st.answers[q.id + '_text'] || '')}" placeholder="Préciser…" maxlength="120">`;
-            }
-            const badges = (q.optional ? '<span class="iv-badge">optionnel</span>' : '')
-                + (q.type === 'multi' ? '<span class="iv-badge multi">plusieurs choix</span>' : '');
-            return `<div class="iv-q${done ? ' done' : ''}">
-                <div class="iv-q-head"><span class="iv-q-n">${i + 1}</span><span class="iv-q-t">${escapeHtml(q.q)}</span>${badges}</div>
-                ${ctrl}</div>`;
-        }).join('');
-        const p = IV.progress(st.scenario, st.answers);
-        $('#ivCount').textContent = `${p.done} / ${p.total}`;
-        $('#ivBar').style.width = p.total ? Math.round(p.done / p.total * 100) + '%' : '0%';
-        ivPreview();
-    }
-
-    function ivPreview() {
-        const st = ivState();
-        const el = $('#ivPreview'), tx = $('#ivPreviewText');
-        if (!el || !IV || !st.scenario) { if (el) el.hidden = true; return; }
-        const susp = (typeof getSuspectsData === 'function')
-            ? getSuspectsData('patrolSuspectCards').filter(s => (s.role || 'Suspect') === 'Suspect')[0] : null;
-        const paras = IV.narrate(st.scenario, st.answers, ivContext(susp || null));
-        if (!paras.length) { el.hidden = true; return; }
-        el.hidden = false;
-        tx.innerHTML = paras.map(p => `<p>${escapeHtml(sanitizeRadioCodes(p))}</p>`).join('');
-    }
-
-    if ($('#ivScenarios')) {
-        $('#ivScenarios').addEventListener('click', e => {
-            const b = e.target.closest('.iv-scen'); if (!b) return;
-            const st = ivState();
-            st.scenario = b.dataset.scen; st.answers = {};
-            ivRender();
-        });
-        $('#ivChange').addEventListener('click', () => {
-            const st = ivState(); st.scenario = null; st.answers = {};
-            ivRender();
-        });
-        $('#ivQuestions').addEventListener('click', e => {
-            const b = e.target.closest('.iv-opt'); if (!b) return;
-            const st = ivState(), id = b.dataset.q, v = b.dataset.v;
-            if (b.dataset.type === 'multi') {
-                let cur = (st.answers[id] || []).slice();
-                const i = cur.indexOf(v);
-                if (i >= 0) cur.splice(i, 1); else cur.push(v);
-                // Une réponse « aucun / rien » exclut les autres, et inversement :
-                // « aucun blessé » + « blessés légers » n'a aucun sens.
-                const q = IV.visibleQuestions(st.scenario, st.answers).find(x => x.id === id);
-                if (q && cur.length > 1) {
-                    const isExc = w => (q.answers || []).some(o => o.v === w && o.exclusive);
-                    cur = isExc(v) ? [v] : cur.filter(w => !isExc(w));
-                }
-                st.answers[id] = cur;
-            } else {
-                st.answers[id] = (st.answers[id] === v) ? null : v;
-            }
-            ivRenderQuestions();
-        });
-        // Saisie libre : on ne re-rend pas (perte de focus), on rafraîchit l'aperçu.
-        $('#ivQuestions').addEventListener('input', e => {
-            const t = e.target.closest('.iv-text'); if (!t) return;
-            ivState().answers[t.dataset.q] = (t.value || '').slice(0, 120);
-            ivPreview();
-        });
-        // Rendu initial. NB : boot() vit dans une seconde IIFE et ne voit pas
-        // ivRender — l'init se fait donc ici, dans la portée de définition.
-        ivRender();
-    }
-
     // Motif d'appel (nom, pour « nous répondons à un appel pour … ») déduit du
     // premier code d'intervention sélectionné.
     function lspdPatrolMotif() {
@@ -3048,15 +2886,13 @@
         const allSuspects = getSuspectsData('patrolSuspectCards');
         const realSuspects = allSuspects.filter(s => (s.role || 'Suspect') === 'Suspect');
         const { bySuspect } = lspdCollectInfractions('patrolPenalInfractions', realSuspects.length);
-        const iv = state.patrol.interview;
-        const selfNarrative = !!(iv && iv.scenario && window.LSPD_IV);
 
         // Si aucun suspect identifié → un seul bloc "Non communiqué."
         if (realSuspects.length === 0) {
             const narrative = lspdBuildPatrolNarrative(null, location);
             return lspdBuildReportBlock({
                 date, time, location, arrestTime, prosecutor, agents, motif,
-                narrative, vehicleStr, selfNarrative,
+                narrative, vehicleStr,
                 infractions: bySuspect[0] || []
             });
         }
@@ -3066,7 +2902,7 @@
             const narrative = lspdBuildPatrolNarrative(suspect, location);
             return lspdBuildReportBlock({
                 date, time, location, arrestTime, prosecutor, agents, motif,
-                narrative, vehicleStr, selfNarrative,
+                narrative, vehicleStr,
                 infractions: bySuspect[idx] || []
             });
         });
@@ -3553,8 +3389,7 @@
         if ($('#patrolGsrRow')) $('#patrolGsrRow').classList.remove('visible');
         if ($('#patrolGsrNotes')) $('#patrolGsrNotes').value = '';
         $$('#patrolGsrSelector .tag-btn').forEach(b => b.classList.remove('active'));
-        state.patrol = { unit: null, status: null, tenCode: null, tenCodes: [], tags: { suspect_state: [], impact_detail: [], agent_state: [], suspect_obs: [], behavior: [], aggressor: [], aggression_origin: [], suspect_flight: [], pursuit_end: [], force: [], tests: [], search_person: [], search_vehicle: [], miranda: [], medical_end: [] }, interview: { scenario: null, answers: {} }, pursuitEndLocation: '', anatomicalZones: [], vehicleColor: [], vehicleState: [], evidence: [], ammoTypes: [] };
-        ivRender();
+        state.patrol = { unit: null, status: null, tenCode: null, tenCodes: [], tags: { suspect_state: [], impact_detail: [], agent_state: [], suspect_obs: [], behavior: [], aggressor: [], aggression_origin: [], suspect_flight: [], pursuit_end: [], force: [], tests: [], search_person: [], search_vehicle: [], miranda: [], medical_end: [] }, pursuitEndLocation: '', anatomicalZones: [], vehicleColor: [], vehicleState: [], evidence: [], ammoTypes: [] };
         if ($('#pursuitEndLocation')) $('#pursuitEndLocation').value = '';
         const pursuitPanel = $('#dynamic-pursuit-panel');
         if (pursuitPanel) pursuitPanel.style.display = 'none';

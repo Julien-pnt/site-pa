@@ -1178,11 +1178,6 @@
         return `${lspdPad2(d.getHours())}h${lspdPad2(d.getMinutes())}`;
     }
 
-    function lspdExtractMatricule(rosterAgent) {
-        if (!rosterAgent || !rosterAgent.matricule) return '';
-        return String(rosterAgent.matricule).trim().replace(/^#+/, '');
-    }
-
     function lspdJoinFr(items) {
         const arr = items.filter(x => x !== '' && x != null);
         if (arr.length === 0) return '';
@@ -1200,24 +1195,6 @@
         const fn = lspdTitleCase((suspect.firstname || '').trim());
         const ln = lspdTitleCase((suspect.lastname || '').trim());
         return `${fn} ${ln}`.trim();
-    }
-
-    function lspdMatriculesFor(moduleKey) {
-        const indices = state.selectedAgents[moduleKey] || [];
-        return indices.map(i => lspdExtractMatricule(state.roster[i])).filter(Boolean);
-    }
-
-    // Heure des droits Miranda : on s'appuie sur le tag « Droits Miranda lus
-    // et compris » (uniquement Patrouille). Si coché → on réutilise l'heure
-    // du datetime du module ; sinon « - ».
-    function lspdMirandaTime(moduleKey, datetimeInputId) {
-        let mirandaChecked = false;
-        if (moduleKey === 'patrol') {
-            mirandaChecked = (state.patrol.tags.miranda || []).includes('Droits Miranda lus et compris');
-        }
-        if (!mirandaChecked) return '-';
-        const v = $(`#${datetimeInputId}`) ? $(`#${datetimeInputId}`).value : '';
-        return v ? lspdFormatTime(v) : lspdFormatTime(new Date());
     }
 
     // Récupère les véhicules du module Patrouille au format ligne unique.
@@ -2368,8 +2345,6 @@
                 $$('.tag-btn', container).forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 stateObj[stateKey] = item.code || item;
-                // Trigger intro update for ten-code
-                if (stateKey === 'tenCode') updateIntroPreview();
                 if (onChange) onChange(item.code || item);
             });
             container.appendChild(btn);
@@ -2400,40 +2375,6 @@
             notice.textContent = `⚠ Unité ${unitCode} (${unitInfo ? unitInfo.desc : ''}) — Veuillez sélectionner les agents présents ci-dessus.`;
             notice.classList.add('active');
             notice.classList.remove('error');
-        }
-    }
-
-    function updateIntroPreview() {
-        const codes = state.patrol.tenCodes;
-        const preview = $('#introPreview');
-        // Panneau d'aperçu d'intro retiré d'une refonte précédente : sans cet
-        // élément, la fonction devient un no-op (évite un TypeError qui cassait
-        // le clic sur la nature d'intervention). Voir récap (code orphelin).
-        if (!preview) return;
-        if (codes.length > 0) {
-            // Build a chained intro narrative
-            let introText = DB.introMapping[codes[0]] || '';
-            if (codes.length > 1) {
-                // Add transition phrases for each escalation step
-                for (let i = 1; i < codes.length; i++) {
-                    const key = codes[i - 1] + '->' + codes[i];
-                    const transition = DB.transitionPhrases[key];
-                    if (transition) {
-                        introText += ` Par la suite, ${transition}.`;
-                    } else {
-                        // Fallback generic transition (toujours en clair, jamais de code radio)
-                        const desc = DB.tenCodes[codes[i]];
-                        introText += desc
-                            ? ` La situation a ensuite évolué : ${desc.charAt(0).toLowerCase() + desc.slice(1)}.`
-                            : ' La situation a ensuite évolué.';
-                    }
-                }
-            }
-            preview.textContent = introText || 'Sélectionnez un 10-Code ci-dessus pour générer l\'introduction.';
-            preview.style.color = introText ? '#f0d98a' : '';
-        } else {
-            preview.textContent = 'Sélectionnez un 10-Code ci-dessus pour générer l\'introduction.';
-            preview.style.color = '';
         }
     }
 
@@ -2474,7 +2415,6 @@
                 tenCodeContainer.querySelectorAll('.tag-btn').forEach(b => {
                     b.classList.toggle('active', state.patrol.tenCodes.includes(b.dataset.tag));
                 });
-                updateIntroPreview();
                 updateTenCodeChain();
                 syncOpsModules();
                 togglePursuitPanel();
@@ -2875,8 +2815,6 @@
         const date = lspdFormatDate(dtObj);
         const time = lspdFormatTime(dtObj);
         const location = $('#patrolLocation').value.trim() || 'Non communiqué.';
-        const matricules = lspdMatriculesFor('patrol');
-        const mirandaTime = lspdMirandaTime('patrol', 'patrolDatetime');
         const vehicleStr = lspdFormatVehiclePatrol();
         const agents = lspdSelectedRoster('patrol');
         const motif = lspdPatrolMotif();
@@ -2948,9 +2886,6 @@
         const date = lspdFormatDate(dtObj);
         const time = lspdFormatTime(dtObj);
         const location = $('#narcLocation').value.trim() || 'Non communiqué.';
-        const matricules = lspdMatriculesFor('narcotics');
-        // Le module GND ne possède pas le tag Miranda dans l'UI actuelle → "-"
-        const mirandaTime = '-';
         const vehicleStr = 'Non communiqué.';
         const opType = state.narcotics.operationType || 'GND';
         const agents = lspdSelectedRoster('narcotics');
@@ -3012,8 +2947,6 @@
         const date = lspdFormatDate(dtObj);
         const time = lspdFormatTime(dtObj);
         const location = $('#cidLocation').value.trim() || 'Non communiqué.';
-        const matricules = lspdMatriculesFor('cid');
-        const mirandaTime = '-';
         const vehicleStr = 'Non communiqué.';
         const agents = lspdSelectedRoster('cid');
         const crimeType = (state.cid && state.cid.crimeType) || [];
@@ -3412,7 +3345,6 @@
         // Reset inline penal checkboxes
         $$('#patrolPenalInfractions input[type="checkbox"]').forEach(cb => { cb.checked = false; cb.closest('.penal-row').classList.remove('checked'); });
         updateInlinePenalTotals('patrolPenalInfractions', 'patrolPenalFine', 'patrolPenalPrison', 'patrolPenalCharges');
-        updateIntroPreview();
         updateTenCodeChain();
         updateStateChain('suspect_state');
         updateStateChain('impact_detail');
@@ -5082,7 +5014,6 @@
                 }
                 // Keep legacy tenCode as first selected (for intro/report compatibility)
                 state.patrol.tenCode = state.patrol.tenCodes[0] || null;
-                updateIntroPreview();
                 updateTenCodeChain();
                 syncOpsModules();
                 togglePursuitPanel();

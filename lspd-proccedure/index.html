@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Sécurité alignée sur le reste du site : tout est auto-hébergé (polices,
+         Leaflet) sauf les tuiles de la carte GTA (img-src) et le Worker IA (connect-src). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://soukapic.github.io data:; connect-src https://*.workers.dev; form-action 'none'">
+    <meta name="referrer" content="no-referrer">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0d1117">
+    <meta name="description" content="LSPD — Terminal de Procédures (GTA RP) : rédaction de rapports de patrouille, GND, CID, procès-verbaux d'interrogatoire et calculateur de peines, sans clavier.">
+    <title>LSPD — Terminal de Procédures · Justice OS</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="../assets/favicon.png">
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+    <link rel="preload" as="font" type="font/woff2" href="../assets/fonts/barlow-400-latin.woff2" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="../assets/fonts/oswald-600-latin.woff2" crossorigin>
+    <link rel="stylesheet" href="../fonts.css">
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SIDEBAR NAVIGATION                                            -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <svg class="sidebar-shield" viewBox="0 0 100 116" aria-label="LSPD shield">
+                <defs>
+                    <linearGradient id="shGold" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#f4e29a"/><stop offset=".45" stop-color="#c9a84c"/><stop offset="1" stop-color="#8a6e28"/>
+                    </linearGradient>
+                    <linearGradient id="shFab" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#2a4068"/><stop offset=".5" stop-color="#1a2744"/><stop offset="1" stop-color="#101a2c"/>
+                    </linearGradient>
+                </defs>
+                <path d="M50 4 L92 18 V58 C92 86 72 104 50 112 C28 104 8 86 8 58 V18 Z"
+                      fill="url(#shFab)" stroke="url(#shGold)" stroke-width="3"/>
+                <path d="M50 12 L85 23 V57 C85 81 68 96 50 103 C32 96 15 81 15 57 V23 Z"
+                      fill="none" stroke="rgba(201,168,76,.45)" stroke-width="1.4"/>
+                <path d="M50 30 l5.6 11.4 12.6 1.8 -9.1 8.9 2.2 12.5 -11.3 -5.9 -11.3 5.9 2.2 -12.5 -9.1 -8.9 12.6 -1.8 Z"
+                      fill="url(#shGold)" stroke="#7d6325" stroke-width=".7"/>
+                <text x="50" y="86" text-anchor="middle" font-family="Oswald" font-weight="700" font-size="15" letter-spacing="1.5" fill="url(#shGold)">LSPD</text>
+            </svg>
+            <h1>LSPD</h1>
+            <span class="subtitle">Terminal de Procédures</span>
+        </div>
+        <div class="sidebar-search-wrapper">
+            <button class="sidebar-search-btn" id="btnOpenSearch" title="Recherche globale (Ctrl+K)">
+                <span class="search-icon">⌕</span>
+                <span class="search-placeholder">Rechercher…</span>
+                <kbd class="search-kbd">Ctrl K</kbd>
+            </button>
+        </div>
+        <div class="nav-links">
+            <div class="nav-group">
+                <div class="nav-group-label">Opérationnel</div>
+                <ul>
+                    <li><a href="#" class="nav-link active" data-module="dashboard"><span class="nav-icon">◉</span> Dashboard</a></li>
+                    <li><a href="#" class="nav-link nav-link-primary" data-module="standard"><span class="nav-icon">★</span> Rapport Rapide<span class="nav-badge">RAPIDE</span></a></li>
+                </ul>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-label">Rapports détaillés</div>
+                <ul>
+                    <li><a href="#" class="nav-link" data-module="patrol"><span class="nav-icon">⬡</span> Rapport de Patrouille</a></li>
+                    <li><a href="#" class="nav-link" data-module="narcotics"><span class="nav-icon">⚗</span> GND — Gang &amp; Narcotic</a></li>
+                </ul>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-label">Enquête</div>
+                <ul>
+                    <li><a href="#" class="nav-link" data-module="crimes"><span class="nav-icon">⊕</span> CID — Crimes Majeurs</a></li>
+                    <li><a href="#" class="nav-link" data-module="interrogation"><span class="nav-icon">⊘</span> Interrogatoire</a></li>
+                </ul>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-label">Référence</div>
+                <ul>
+                    <li><a href="#" class="nav-link" data-module="penal"><span class="nav-icon">§</span> Code Pénal</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="sidebar-footer">
+            <a class="back-to-manual" href="../lspd-revision.html" title="Retour au Manuel de Révision LSPD">↩ Manuel de Révision</a>
+            <button class="btn-settings" id="btnOpenSettings" title="Paramètres Claude AI">⚙ Claude AI</button>
+            <div class="clock" id="liveClock">00:00:00</div>
+            <div class="version">v3.1 — ÉDITION LSPD</div>
+        </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- MAIN CONTENT AREA                                             -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <main id="mainContent">
+
+        <!-- ═══════════ MODULE: DASHBOARD ═══════════ -->
+        <section id="mod-dashboard" class="module active">
+            <div class="module-header">
+                <h2>Dashboard — Centre de Commandement</h2>
+                <div class="header-actions">
+                    <button class="btn btn-gold" id="btnNewStandard" title="Créer un rapport rapide à blocs">＋ Nouveau rapport</button>
+                    <button class="btn btn-emergency" id="btnCode99" title="Urgence générale — tous les agents répondent">⚠ URGENCE GÉNÉRALE</button>
+                    <button class="btn btn-emergency btn-1035" id="btn1035" title="Renfort immédiat — agent en danger">⚠ RENFORT IMMÉDIAT</button>
+                </div>
+            </div>
+            <div class="dashboard-grid">
+                <div class="dash-card">
+                    <div class="dash-card-header">Rapports Rédigés</div>
+                    <div class="dash-card-value" id="statReports">0</div>
+                    <div class="dash-card-sub">Session en cours</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header">Interpellations</div>
+                    <div class="dash-card-value" id="statArrests">0</div>
+                    <div class="dash-card-sub">Menottages effectués</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header">Saisies Stupéfiants</div>
+                    <div class="dash-card-value" id="statDrugs">0g</div>
+                    <div class="dash-card-sub">Poids total saisi</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header">Amendes Totales</div>
+                    <div class="dash-card-value" id="statFines">$0</div>
+                    <div class="dash-card-sub">Montant cumulé</div>
+                </div>
+            </div>
+
+            <!-- Agent Roster Manager -->
+            <div class="dash-section">
+                <h3>Effectifs — Roster des Agents</h3>
+                <p class="roster-help">Ajoutez vos agents ici. Ils seront disponibles dans tous les modules.</p>
+                <div class="roster-manager">
+                    <div class="roster-add-form">
+                        <input type="text" id="rosterNewGrade" placeholder="Grade (Ex: Officier II, Detective, Sergeant)" maxlength="50">
+                        <input type="text" id="rosterNewName" placeholder="Nom Prénom (Ex: Smith John)" maxlength="100">
+                        <input type="text" id="rosterNewMatricule" placeholder="Matricule (Ex: #4521)" maxlength="20">
+                        <button class="btn btn-gold" id="btnAddAgent">+ Ajouter</button>
+                    </div>
+                    <div class="roster-list" id="rosterList"></div>
+                </div>
+            </div>
+
+            <div class="dash-section">
+                <h3>Référence Rapide — Indicatifs d'Unité</h3>
+                <div class="ref-grid" id="unitRefGrid"></div>
+            </div>
+            <div class="dash-section">
+                <h3>Référence Rapide — Codes Radio</h3>
+                <div class="ref-grid" id="statusRefGrid"></div>
+            </div>
+
+            <!-- Emergency Modal -->
+            <div class="modal-overlay" id="emergencyModal">
+                <div class="modal emergency-modal">
+                    <div class="emergency-flash" id="emergencyFlash">
+                        <h2 id="emergencyTitle">⚠ CODE 99 ⚠</h2>
+                        <p id="emergencyDesc">TOUS LES AGENTS RÉPONDENT — URGENCE MAXIMALE</p>
+                        <div class="emergency-time" id="emergencyTime"></div>
+                        <button class="btn btn-gold" id="btnCloseEmergency">ANNULER L'ALERTE</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ MODULE: RAPPORT RAPIDE (mode standard à blocs) ═══════════ -->
+        <section id="mod-standard" class="module">
+            <div class="module-header">
+                <h2>Rapport Rapide</h2>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="rfReset">Réinitialiser</button>
+                </div>
+            </div>
+            <p class="rf-intro">Cochez les blocs de procédure correspondant à votre intervention, remplissez le strict minimum, et copiez le rapport. Pour un cas hors standard, utilisez le complément IA en bas de colonne.</p>
+
+            <div class="rf-layout">
+                <!-- Colonne saisie -->
+                <div class="rf-col rf-col-input">
+                    <div class="form-section">
+                        <h3>Informations</h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>Agent(s) en service</label>
+                                <div class="roster-selector" id="rfRoster"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Date &amp; heure des faits</label>
+                                <input type="datetime-local" id="rfDatetime">
+                            </div>
+                            <div class="form-group">
+                                <label>Heure d'interpellation</label>
+                                <input type="text" id="rfArrestTime" placeholder="Ex : 21h45">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Lieu</label>
+                                <input type="text" id="rfLocation" placeholder="Ex : Route 68, Sandy Shores">
+                            </div>
+                            <div class="form-group">
+                                <label>Individu — Nom</label>
+                                <input type="text" id="rfSuspectLast" placeholder="Ex : JOHNSON">
+                            </div>
+                            <div class="form-group">
+                                <label>Individu — Prénom</label>
+                                <input type="text" id="rfSuspectFirst" placeholder="Ex : Marcus">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Procureur en charge</label>
+                                <input type="text" id="rfProsecutor" placeholder="Ex : Me Harding">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Blocs de procédure</h3>
+                        <p class="roster-help">Cliquez pour activer un bloc. Les blocs cochés s'assemblent dans l'ordre chronologique dans l'aperçu.</p>
+                        <div class="rf-blocks" id="rfBlocks"></div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Charges retenues <span class="fs-opt">(optionnel)</span></h3>
+                        <p class="roster-help">Cochez les infractions : elles apparaissent en fin de rapport sous « Charges retenues ».</p>
+                        <div class="penal-search-bar">
+                            <span class="penal-search-icon">⌕</span>
+                            <input type="text" id="standardPenalSearch" class="penal-search-input" placeholder="Filtrer les chefs d'inculpation…" autocomplete="off">
+                            <span class="penal-search-count" id="standardPenalSearchCount"></span>
+                            <button class="penal-search-clear" id="standardPenalSearchClear" title="Effacer">✕</button>
+                        </div>
+                        <div class="penal-calculator">
+                            <div class="penal-category" id="standardPenalInfractions"></div>
+                        </div>
+                        <div class="penal-total-bar">
+                            <div class="penal-total-item">
+                                <span class="penal-total-label">AMENDE TOTALE</span>
+                                <span class="penal-total-value" id="standardPenalFine">$0</span>
+                            </div>
+                            <div class="penal-total-item">
+                                <span class="penal-total-label">CHEFS</span>
+                                <span class="penal-total-value" id="standardPenalPrison">-</span>
+                            </div>
+                            <div class="penal-total-item">
+                                <span class="penal-total-label">CHARGES</span>
+                                <span class="penal-total-value" id="standardPenalCharges">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section fs-ai">
+                        <h3>Complément IA — greffier <span class="fs-opt">(cas hors standard)</span></h3>
+                        <p class="roster-help">Décrivez les faits particuliers en 3-4 lignes : l'IA rédige le paragraphe dans le même style et l'insère à la fin de l'aperçu (éditable avant copie).</p>
+                        <textarea id="rfAiInput" rows="3" placeholder="Ex : le suspect a tenté de dissimuler un téléphone dans le conduit d'aération avant la fouille…"></textarea>
+                        <button class="btn btn-gold" id="rfAiBtn">✦ Rédiger &amp; insérer</button>
+                    </div>
+                </div>
+
+                <!-- Colonne aperçu -->
+                <div class="rf-col rf-col-preview">
+                    <div class="rf-preview-wrap">
+                        <div class="rf-preview-head">
+                            <span class="rf-preview-title">Aperçu du rapport</span>
+                            <span class="rf-dirty-note" id="rfDirtyNote" hidden>✎ édité manuellement</span>
+                            <div class="rf-preview-actions">
+                                <button class="btn btn-outline btn-sm" id="rfRegen" title="Régénérer depuis les blocs (efface les éditions manuelles)">↻ Régénérer</button>
+                                <button class="btn btn-gold btn-sm" id="rfCopy">⧉ Copier</button>
+                            </div>
+                        </div>
+                        <textarea class="rf-preview" id="rf-preview" spellcheck="false" aria-label="Aperçu du rapport, éditable"></textarea>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ MODULE: PATROL REPORT ═══════════ -->
+        <section id="mod-patrol" class="module">
+            <div class="module-header">
+                <h2>Rapport de Patrouille</h2>
+                <div class="header-actions">
+                    <button class="btn btn-gold" id="btnPatrolExportMD">Exporter Markdown</button>
+                    <button class="btn btn-outline" id="btnPatrolExportTXT">Exporter Texte</button>
+                    <button class="btn btn-outline" id="btnPatrolReset">Réinitialiser</button>
+                </div>
+            </div>
+            <aside class="patrol-stepper" id="patrolStepper" aria-label="Progression du rapport">
+                <ol>
+                    <li data-step="1"><span class="step-num">1</span><span class="step-label">Intervention</span></li>
+                    <li data-step="2"><span class="step-num">2</span><span class="step-label">Personnes</span></li>
+                    <li data-step="3"><span class="step-num">3</span><span class="step-label">Véhicule</span></li>
+                    <li data-step="4"><span class="step-num">4</span><span class="step-label">Déroulement</span></li>
+                    <li data-step="5"><span class="step-num">5</span><span class="step-label">Charges</span></li>
+                    <li data-step="6"><span class="step-num">6</span><span class="step-label">Rapport</span></li>
+                </ol>
+            </aside>
+
+            <!-- Step 1: Meta Info -->
+            <div class="form-section" data-step="1">
+                <h3>1 · Intervention</h3>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Agent(s) en Service</label>
+                        <div class="roster-selector" id="patrolRoster"></div>
+                        <div class="roster-notice" id="patrolRosterNotice"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Indicatif d'Unité</label>
+                        <div class="tag-selector" id="unitSelector"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Code Statut</label>
+                        <div class="tag-selector" id="statusSelector"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Nature de l'Intervention <span class="chain-hint">(cliquez dans l'ordre chronologique)</span></label>
+                        <div class="tag-selector" id="tenCodeSelector"></div>
+                        <div class="tencode-chain" id="tenCodeChain" style="display:none;">
+                            <div class="chain-label">Déroulé chronologique :</div>
+                            <div class="chain-steps" id="tenCodeChainSteps"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Localisation</label>
+                        <div class="location-row">
+                            <input type="text" id="patrolLocation" placeholder="Ex: Route 68, Sandy Shores">
+                            <button type="button" class="btn-map-pick" data-target="patrolLocation" title="Choisir sur la carte GTA V">🗺</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Date & Heure</label>
+                        <input type="datetime-local" id="patrolDatetime">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1b: Suspect Identification -->
+            <div class="form-section" data-step="2">
+                <h3>2 · Personnes impliquées</h3>
+                <div class="suspect-cards" id="patrolSuspectCards">
+                    <div class="suspect-card" data-suspect="0">
+                        <div class="suspect-card-header">
+                            <span class="suspect-card-number">Suspect #1</span>
+                            <button class="qa-remove suspect-remove" title="Supprimer" style="display:none;">&times;</button>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>Rôle</label>
+                                <div class="tag-selector suspect-role">
+                                    <button class="tag-btn active" data-tag="Suspect">Suspect</button>
+                                    <button class="tag-btn" data-tag="Victime armée">Victime armée</button>
+                                    <button class="tag-btn" data-tag="Victime non armée">Victime non armée</button>
+                                    <button class="tag-btn" data-tag="Dommage collatéral">Dommage collatéral</button>
+                                </div>
+                            </div>
+                            <div class="form-group full-width suspect-victim-status-wrap" style="display:none;">
+                                <label>Statut / Lien avec l'incident</label>
+                                <select class="suspect-victim-status">
+                                    <option value="">-- Sélectionner --</option>
+                                    <option value="Cible directe / Victime principale">Cible directe / Victime principale</option>
+                                    <option value="Dommage collatéral : Passager du suspect">Dommage collatéral : Passager du suspect</option>
+                                    <option value="Dommage collatéral : Piéton innocent">Dommage collatéral : Piéton innocent</option>
+                                    <option value="Dommage collatéral : Occupant d'un autre véhicule">Dommage collatéral : Occupant d'un autre véhicule</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Nom</label>
+                                <input type="text" class="suspect-lastname" placeholder="Ex: JOHNSON">
+                            </div>
+                            <div class="form-group">
+                                <label>Prénom</label>
+                                <input type="text" class="suspect-firstname" placeholder="Ex: Marcus">
+                            </div>
+                            <div class="form-group">
+                                <label>Date de Naissance</label>
+                                <input type="text" class="suspect-dob" placeholder="Ex: 15/03/1992">
+                            </div>
+                            <div class="form-group">
+                                <label>Sexe</label>
+                                <div class="tag-selector suspect-gender">
+                                    <button class="tag-btn" data-tag="Masculin">Masculin</button>
+                                    <button class="tag-btn" data-tag="Féminin">Féminin</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Téléphone</label>
+                                <input type="text" class="suspect-phone" placeholder="Ex: 555-0147">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Description Physique</label>
+                                <div class="tag-selector suspect-description">
+                                    <button class="tag-btn" data-tag="Caucasien">Caucasien</button>
+                                    <button class="tag-btn" data-tag="Afro-américain">Afro-américain</button>
+                                    <button class="tag-btn" data-tag="Hispanique">Hispanique</button>
+                                    <button class="tag-btn" data-tag="Asiatique">Asiatique</button>
+                                    <button class="tag-btn" data-tag="Corpulence mince">Mince</button>
+                                    <button class="tag-btn" data-tag="Corpulence moyenne">Moyen</button>
+                                    <button class="tag-btn" data-tag="Corpulence forte">Fort</button>
+                                    <button class="tag-btn" data-tag="Tatouages visibles">Tatouages</button>
+                                    <button class="tag-btn" data-tag="Cicatrices visibles">Cicatrices</button>
+                                    <button class="tag-btn" data-tag="Portant un masque">Masqué</button>
+                                    <button class="tag-btn" data-tag="Capuche / Hoodie">Capuche</button>
+                                    <button class="tag-btn" data-tag="Vêtements sombres">Vêtements sombres</button>
+                                    <button class="tag-btn" data-tag="Vêtements clairs">Vêtements clairs</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="suspect-actions">
+                    <button class="btn btn-gold" id="btnAddPatrolSuspect">+ Ajouter une personne</button>
+                </div>
+            </div>
+
+            <!-- Step 1c: Vehicle -->
+            <div class="form-section" data-step="3">
+                <h3>3 · Véhicule(s) impliqué(s)</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Marque / Modèle</label>
+                        <input type="text" id="patrolVehicleModel" placeholder="Ex: Bravado Buffalo STX">
+                    </div>
+                    <div class="form-group">
+                        <label>Couleur</label>
+                        <div class="tag-selector" id="patrolVehicleColor">
+                            <button class="tag-btn" data-tag="Noir">Noir</button>
+                            <button class="tag-btn" data-tag="Blanc">Blanc</button>
+                            <button class="tag-btn" data-tag="Gris">Gris</button>
+                            <button class="tag-btn" data-tag="Rouge">Rouge</button>
+                            <button class="tag-btn" data-tag="Bleu">Bleu</button>
+                            <button class="tag-btn" data-tag="Vert">Vert</button>
+                            <button class="tag-btn" data-tag="Jaune">Jaune</button>
+                            <button class="tag-btn" data-tag="Orange">Orange</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Plaque d'Immatriculation</label>
+                        <input type="text" id="patrolVehiclePlate" placeholder="Ex: SA-1234-BC">
+                    </div>
+                    <div class="form-group">
+                        <label>État du Véhicule</label>
+                        <div class="tag-selector" id="patrolVehicleState">
+                            <button class="tag-btn" data-tag="Bon état">Bon état</button>
+                            <button class="tag-btn" data-tag="Endommagé">Endommagé</button>
+                            <button class="tag-btn" data-tag="Accidenté">Accidenté</button>
+                            <button class="tag-btn" data-tag="Calciné">Calciné</button>
+                            <button class="tag-btn" data-tag="Abandonné">Abandonné</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Zero-Typing Narrative Builder -->
+            <div class="form-section" data-step="4">
+                <h3>4 · Déroulement de l'intervention</h3>
+<!-- ═══════════ ENTRETIEN GUIDÉ (remplace les modules à tags) ═══════════ -->
+            <div class="iv-wrap" id="ivWrap">
+                <div class="iv-intro">Choisissez le type d'intervention — les questions s'adaptent au scénario.</div>
+                <div class="iv-scenarios" id="ivScenarios" role="group" aria-label="Type d'intervention"></div>
+                <div class="iv-body" id="ivBody" hidden>
+                    <div class="iv-head">
+                        <span class="iv-scen-label" id="ivScenLabel"></span>
+                        <div class="iv-progress" aria-live="polite">
+                            <div class="iv-bar"><i id="ivBar"></i></div>
+                            <span class="iv-count" id="ivCount">0 / 0</span>
+                        </div>
+                        <button type="button" class="iv-change" id="ivChange">Changer de scénario</button>
+                    </div>
+                    <div class="iv-questions" id="ivQuestions"></div>
+                    <div class="iv-preview" id="ivPreview" hidden>
+                        <div class="iv-preview-label">Aperçu du récit</div>
+                        <div class="iv-preview-text" id="ivPreviewText"></div>
+                    </div>
+                </div>
+            </div>
+
+                <div class="tag-builder">
+
+
+                    <!-- ── GROUPE 3 : Réponse Policière ── -->
+                    <div class="nb-group">
+                        <div class="nb-group-title">Réponse Policière<span class="nb-group-count">0</span><span class="nb-group-chevron">⌃</span></div>
+                        <div class="nb-group-body">
+                    <div class="tag-category">
+                        <h4>| Riposte &amp; Usage de la Force (Agents)</h4>
+                        <div class="tag-group" data-category="force">
+                            <button class="tag-btn" data-tag="Injonctions verbales effectuées">Injonctions verbales</button>
+                            <button class="tag-btn" data-tag="Maîtrise physique / Plaquage au sol">Maîtrise physique / Plaquage</button>
+                            <button class="tag-btn" data-tag="Déploiement de gaz OC par les agents">Déploiement Gaz OC</button>
+                            <button class="tag-btn" data-tag="Déploiement du Taser par les agents">Déploiement Taser</button>
+                            <button class="tag-btn" data-tag="Usage du bâton télescopique par les agents">Bâton télescopique</button>
+                            <button class="tag-btn" data-tag="Déploiement de l'unité K-9">Déploiement K-9</button>
+                            <button class="tag-btn" data-tag="Les agents ont riposté par arme à feu (tirs de riposte)">Riposte par arme à feu</button>
+                            <button class="tag-btn" data-tag="Tir de neutralisation ciblé par les agents">Tir de neutralisation ciblé</button>
+                            <button class="tag-btn" data-tag="Tir de sommation effectué par les agents">Tir de sommation</button>
+                            <button class="tag-btn" data-tag="Déploiement d'arme lourde demandé" title="Déploiement d'arme lourde demandé">Déploiement arme lourde</button>
+                            <button class="tag-btn" data-tag="Déploiement de beanbag demandé" title="Déploiement de beanbag (LTL) demandé">Déploiement beanbag</button>
+                        </div>
+                    </div>
+                    <div class="tag-category">
+                        <h4>| Dépistages &amp; Tests</h4>
+                        <div class="tag-group" data-category="tests">
+                            <button class="tag-btn" data-tag="Éthylotest positif">Éthylotest positif</button>
+                            <button class="tag-btn" data-tag="Éthylotest négatif">Éthylotest négatif</button>
+                            <button class="tag-btn" data-tag="Test salivaire positif">Test salivaire positif</button>
+                            <button class="tag-btn" data-tag="Test GSR positif">Test GSR positif</button>
+                            <button class="tag-btn" data-tag="Test GSR négatif">Test GSR négatif</button>
+                        </div>
+                    </div>
+                    <div class="tag-category">
+                        <h4>| Justification Fouille (Individu)</h4>
+                        <div class="tag-group" data-category="search_person">
+                            <button class="tag-btn" data-tag="Consentement accordé">Consentement accordé</button>
+                            <button class="tag-btn" data-tag="Palpation de sécurité (Terry Frisk)">Palpation de sécurité (Terry Frisk)</button>
+                            <button class="tag-btn" data-tag="Fouille incidente à l'arrestation">Fouille incidente à l'arrestation</button>
+                        </div>
+                    </div>
+                    <div class="tag-category">
+                        <h4>| Justification Fouille (Véhicule / Lieu)</h4>
+                        <div class="tag-group" data-category="search_vehicle">
+                            <button class="tag-btn" data-tag="Contrebande en vue directe">Contrebande en vue directe</button>
+                            <button class="tag-btn" data-tag="Fouille d'inventaire (Fourrière)">Fouille d'inventaire (Fourrière)</button>
+                            <button class="tag-btn" data-tag="Alerte positive K-9">Alerte positive K-9</button>
+                            <button class="tag-btn" data-tag="Mandat de perquisition (Warrant)">Mandat de perquisition (Warrant)</button>
+                        </div>
+                    </div>
+                        </div><!-- /nb-group-body Réponse -->
+                    </div><!-- /nb-group Réponse -->
+
+                    <!-- ── GROUPE 4 : Procédure Légale ── -->
+                    <div class="nb-group">
+                        <div class="nb-group-title">Procédure Légale<span class="nb-group-count">0</span><span class="nb-group-chevron">⌃</span></div>
+                        <div class="nb-group-body">
+                    <div class="tag-category">
+                        <h4>| Procédure &amp; Droits Miranda</h4>
+                        <div class="tag-group" data-category="miranda">
+                            <button class="tag-btn" data-tag="Droits Miranda lus et compris">Droits Miranda lus et compris</button>
+                            <button class="tag-btn" data-tag="Invoque le droit au silence">Invoque le droit au silence</button>
+                            <button class="tag-btn" data-tag="Demande un avocat">Demande un avocat</button>
+                            <button class="tag-btn" data-tag="Passe aux aveux spontanés">Passe aux aveux spontanés</button>
+                        </div>
+                    </div>
+                    <div class="tag-category">
+                        <h4>| Fin d'intervention &amp; Médical</h4>
+                        <div class="tag-group" data-category="medical_end">
+                            <button class="tag-btn" data-tag="Refus de soins médicaux">Refus de soins médicaux</button>
+                            <button class="tag-btn" data-tag="Soins EMS sur place">Soins EMS sur place</button>
+                            <button class="tag-btn" data-tag="Transport Centre Hospitalier">Transport Centre Hospitalier</button>
+                            <button class="tag-btn" data-tag="Déclaré apte à l'incarcération">Déclaré apte à l'incarcération</button>
+                            <button class="tag-btn" data-tag="Maintenu en observation">Maintenu en observation</button>
+                            <button class="tag-btn" data-tag="Décès constaté">Décès constaté</button>
+                        </div>
+                    </div>
+                        </div><!-- /nb-group-body Procédure -->
+                    </div><!-- /nb-group Procédure -->
+                </div>
+
+                
+            </div>
+
+            <!-- Step 2B: Objets & Preuves Saisis -->
+            <div class="form-section">
+                <h3>Fouille &amp; saisies <span class="fs-opt">(optionnel)</span></h3>
+                <div class="tag-selector" id="patrolEvidence">
+                    <button class="tag-btn" data-tag="Arme à feu saisie">Arme à feu</button>
+                    <button class="tag-btn" data-tag="Arme(s) blanche(s) saisie(s)">Arme blanche</button>
+                    <button class="tag-btn" data-tag="Munitions saisies">Munitions</button>
+                    <button class="tag-btn" data-tag="Plans du site / Bâtiment">Plans du site</button>
+                    <button class="tag-btn" data-tag="Radio criminelle / Oreillette">Radio criminelle</button>
+                    <button class="tag-btn" data-tag="Fausse plaque d'immatriculation">Fausse plaque</button>
+                    <button class="tag-btn" data-tag="Balaclava / Tenue de cambriolage">Balaclava</button>
+                    <button class="tag-btn" data-tag="Liens de contention">Liens de contention</button>
+                    <button class="tag-btn" data-tag="Gilet pare-balles illégal">Gilet illégal</button>
+                    <button class="tag-btn" data-tag="Téléphone crypté / Prepaid">Téléphone crypté</button>
+                    <button class="tag-btn" data-tag="Faux documents / Pièces falsifiées">Faux documents</button>
+                    <button class="tag-btn" data-tag="Matériel d'effraction">Matériel effraction</button>
+                    <button class="tag-btn" data-tag="Argent liquide non déclaré">Cash non déclaré</button>
+                    <button class="tag-btn" data-tag="Complicité avérée">Complicité</button>
+                    <button class="tag-btn" data-tag="Téléphone à usage unique / Burner">Burner phone</button>
+                    <button class="tag-btn" data-tag="Masque de ski / Cagoule">Masque / Cagoule</button>
+                    <button class="tag-btn" data-tag="Clés de véhicule volé">Clés de véhicule</button>
+                    <button class="tag-btn" data-tag="Outil de crochetage">Crochetage</button>
+                </div>
+                <div class="firearm-serial-row" id="patrolGsrRow">
+                    <div class="firearm-details-block">
+                        <div class="firearm-detail-row">
+                            <label>Test de résidus de poudre (GSR)</label>
+                            <div class="tag-selector" id="patrolGsrSelector">
+                                <button class="tag-btn" data-tag="Positif">✔ Positif</button>
+                                <button class="tag-btn" data-tag="Négatif">✘ Négatif</button>
+                                <button class="tag-btn" data-tag="Non effectué">Non effectué</button>
+                            </div>
+                        </div>
+                        <div class="firearm-detail-row">
+                            <label>Commentaire GSR (optionnel)</label>
+                            <input type="text" id="patrolGsrNotes" placeholder="Ex: Résidus détectés sur la main droite du suspect">
+                        </div>
+                    </div>
+                </div>
+                <div class="firearm-serial-row" id="patrolFirearmSerialRow">
+                    <div class="firearm-details-block">
+                        <div class="firearm-detail-row">
+                            <label>Modèle(s) d'arme(s) à feu saisie(s)</label>
+                            <input type="text" id="patrolFirearmModelCustom" placeholder="Ex: Carbine Rifle, Heavy Sniper">
+                        </div>
+                        <div class="firearm-detail-row">
+                            <label>N° de série (laisser vide si inconnu)</label>
+                            <input type="text" id="patrolFirearmSerial" placeholder="Ex: AF-448821, BC-119034">
+                        </div>
+                    </div>
+                </div>
+                <div class="ammo-type-row" id="patrolAmmoRow">
+                    <label>Type(s) de munitions saisies</label>
+                    <div class="tag-selector" id="patrolAmmoTypes">
+                        <button class="tag-btn" data-tag="9mm">9mm</button>
+                        <button class="tag-btn" data-tag=".45 ACP">.45 ACP</button>
+                        <button class="tag-btn" data-tag=".357 Magnum">.357 Magnum</button>
+                        <button class="tag-btn" data-tag=".44 Magnum">.44 Magnum</button>
+                        <button class="tag-btn" data-tag=".50 AE">.50 AE</button>
+                        <button class="tag-btn" data-tag="5.56mm / .223">5.56mm / .223</button>
+                        <button class="tag-btn" data-tag="7.62mm">7.62mm</button>
+                        <button class="tag-btn" data-tag=".308 / 7.62mm NATO">.308 / 7.62 NATO</button>
+                        <button class="tag-btn" data-tag=".50 BMG / 12.7mm">.50 BMG</button>
+                        <button class="tag-btn" data-tag="12 Gauge (Chevrotine)">12G Chevrotine</button>
+                        <button class="tag-btn" data-tag="12 Gauge (Slug)">12G Slug</button>
+                        <button class="tag-btn" data-tag="HollowPoint (HP)">Hollow Point</button>
+                        <button class="tag-btn" data-tag="FMJ (Blindées)">FMJ Blindées</button>
+                        <button class="tag-btn" data-tag="Tracantes">Tracantes</button>
+                        <button class="tag-btn" data-tag="Perforantes">Perforantes</button>
+                        <button class="tag-btn" data-tag="Explosives">Explosives</button>
+                        <button class="tag-btn" data-tag="Grenades à fragmentation">Grenades</button>
+                        <button class="tag-btn" data-tag="Molotov">Molotov</button>
+                        <button class="tag-btn" data-tag="Bombes collantes">Bombes collantes</button>
+                        <button class="tag-btn" data-tag="Ogives RPG">Ogives RPG</button>
+                        <button class="tag-btn" data-tag="Explosifs artisanaux">Explosifs artisanaux</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Charges & Amendes -->
+            <div class="form-section" data-step="5">
+                <h3>5 · Charges &amp; amendes</h3>
+                <p class="roster-help">Cochez les infractions à inclure dans le rapport.</p>
+                <div class="penal-search-bar">
+                    <span class="penal-search-icon">⌕</span>
+                    <input type="text" id="patrolPenalSearch" class="penal-search-input" placeholder="Filtrer les chefs d'inculpation…" autocomplete="off">
+                    <span class="penal-search-count" id="patrolPenalSearchCount"></span>
+                    <button class="penal-search-clear" id="patrolPenalSearchClear" title="Effacer">✕</button>
+                </div>
+                <div class="penal-calculator">
+                    <div class="penal-category" id="patrolPenalInfractions"></div>
+                </div>
+                <div class="penal-total-bar">
+                    <div class="penal-total-item">
+                        <span class="penal-total-label">AMENDE TOTALE</span>
+                        <span class="penal-total-value" id="patrolPenalFine">$0</span>
+                    </div>
+                    <div class="penal-total-item">
+                        <span class="penal-total-label">PRISON TOTALE</span>
+                        <span class="penal-total-value" id="patrolPenalPrison">0 mois</span>
+                    </div>
+                    <div class="penal-total-item">
+                        <span class="penal-total-label">CHARGES</span>
+                        <span class="penal-total-value" id="patrolPenalCharges">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes additionnelles -->
+            <div class="form-section">
+                <h3>Notes additionnelles <span class="fs-opt">(optionnel)</span></h3>
+                <textarea id="patrolNotes" rows="3" placeholder="Informations complémentaires si nécessaire..."></textarea>
+            </div>
+
+            <!-- Generated Report -->
+            <div class="form-section" data-step="6">
+                <h3>6 · Rapport généré</h3>
+                <div class="generate-row">
+                    <button class="btn btn-gold btn-lg" id="btnGeneratePatrol">★ GÉNÉRER LE RAPPORT</button>
+                    <label class="ai-mode-label" title="Améliorer automatiquement avec Claude AI après génération">
+                        <input type="checkbox" class="ai-mode-check" id="patrolAiMode">
+                        <span class="ai-mode-indicator">✦ Avec IA auto</span>
+                    </label>
+                </div>
+                <div class="report-output" id="patrolReportOutput">
+                    <p class="placeholder-text">Le rapport apparaîtra ici après génération.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ MODULE: GND NARCOTICS ═══════════ -->
+        <section id="mod-narcotics" class="module">
+            <div class="module-header">
+                <h2>GND — Gang &amp; Narcotic Division</h2>
+                <div class="header-actions">
+                    <button class="btn btn-gold" id="btnNarcExportMD">Exporter Markdown</button>
+                    <button class="btn btn-outline" id="btnNarcExportTXT">Exporter Texte</button>
+                    <button class="btn btn-outline" id="btnNarcReset">Réinitialiser</button>
+                </div>
+            </div>
+
+            <!-- Section 1: Infos Agent & Opération -->
+            <div class="form-section">
+                <h3>1. Informations de l'Opération</h3>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Agent(s) GND</label>
+                        <div class="roster-selector" id="narcRoster"></div>
+                        <div class="roster-notice" id="narcRosterNotice"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Indicatif</label>
+                        <div class="tag-selector" id="narcUnitSelector"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Type d'Opération</label>
+                        <div class="tag-selector" id="narcOperationType"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Localisation de l'Opération</label>
+                        <div class="location-row">
+                            <input type="text" id="narcLocation" placeholder="Ex: Forum Drive / Grove Street, Davis">
+                            <button type="button" class="btn-map-pick" data-target="narcLocation" title="Choisir sur la carte GTA V">🗺</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Date &amp; Heure</label>
+                        <input type="datetime-local" id="narcDatetime">
+                    </div>
+                    <div class="form-group">
+                        <label>Numéro de Dossier GND</label>
+                        <input type="text" id="narcCaseNumber" placeholder="Ex: GND-2026-0127">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Renseignement / Intelligence -->
+            <div class="form-section">
+                <h3>2. Renseignement &amp; Intelligence</h3>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Source du Renseignement</label>
+                        <div class="tag-selector" id="narcIntelSources"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Détail du renseignement (optionnel)</label>
+                        <textarea id="narcIntelDetail" rows="2" placeholder="Ex: Informateur CI-4412 signale un point de deal actif au croisement de Forum Drive et Strawberry Ave, opérationnel entre 20h et 02h..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Phase de Surveillance / Planque -->
+            <div class="form-section">
+                <h3>3. Phase de Surveillance / Planque (Code 5)</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Durée de la Planque</label>
+                        <div class="tag-selector" id="narcSurveillanceDuration"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Moyens de Surveillance</label>
+                        <div class="tag-selector" id="narcSurveillanceMeans"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Position de Planque</label>
+                        <input type="text" id="narcStakeoutPosition" placeholder="Ex: Parking en face, côté nord de la rue">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Observations Terrain</label>
+                        <div class="tag-selector" id="narcObservations"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Notes de surveillance (optionnel)</label>
+                        <textarea id="narcSurveillanceNotes" rows="2" placeholder="Ex: 21h14 — Individu en hoodie noir effectue un échange main à main avec le conducteur d'un Bravado Buffalo noir..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Phase d'Intervention -->
+            <div class="form-section">
+                <h3>4. Phase d'Intervention</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Déclencheur de l'Intervention</label>
+                        <div class="tag-selector" id="narcInterventionTriggers"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Méthode d'Approche</label>
+                        <div class="tag-selector" id="narcApproachMethods"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Résultat de l'Opération</label>
+                        <div class="tag-selector" id="narcOperationResults"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4B: Rôles dans l'Organisation -->
+            <div class="form-section">
+                <h3>4B. Rôles Suspectés dans l'Organisation</h3>
+                <div class="tag-selector" id="narcRoles">
+                    <button class="tag-btn" data-tag="Mule / Transporteur">Mule</button>
+                    <button class="tag-btn" data-tag="Guetteur / Sentinelle">Guetteur</button>
+                    <button class="tag-btn" data-tag="Revendeur direct">Revendeur</button>
+                    <button class="tag-btn" data-tag="Caissier / Comptable">Caissier</button>
+                    <button class="tag-btn" data-tag="Boss / Organisateur">Boss</button>
+                    <button class="tag-btn" data-tag="Contact / Intermédiaire">Contact</button>
+                    <button class="tag-btn" data-tag="Recruteur">Recruteur</button>
+                    <button class="tag-btn" data-tag="Cuisinier / Producteur">Cuisinier</button>
+                    <button class="tag-btn" data-tag="Blanchisseur">Blanchisseur</button>
+                </div>
+            </div>
+
+            <!-- Section 5: Identification du Suspect -->
+            <div class="form-section">
+                <h3>5. Identification du/des Suspect(s)</h3>
+                <div class="suspect-cards" id="narcSuspectCards">
+                    <div class="suspect-card" data-suspect="0">
+                        <div class="suspect-card-header">
+                            <span class="suspect-card-number">Suspect #1</span>
+                            <button class="qa-remove suspect-remove" title="Supprimer" style="display:none;">&times;</button>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group full-width"><label>Rôle</label><div class="tag-selector suspect-role"><button class="tag-btn active" data-tag="Suspect">Suspect</button><button class="tag-btn" data-tag="Victime armée">Victime armée</button><button class="tag-btn" data-tag="Victime non armée">Victime non armée</button><button class="tag-btn" data-tag="Dommage collatéral">Dommage collatéral</button></div></div>
+                            <div class="form-group"><label>Nom</label><input type="text" class="suspect-lastname" placeholder="Nom"></div>
+                            <div class="form-group"><label>Prénom</label><input type="text" class="suspect-firstname" placeholder="Prénom"></div>
+                            <div class="form-group"><label>Date de Naissance</label><input type="text" class="suspect-dob" placeholder="JJ/MM/AAAA"></div>
+                            <div class="form-group"><label>Téléphone</label><input type="text" class="suspect-phone" placeholder="555-XXXX"></div>
+                            <div class="form-group"><label>Sexe</label><div class="tag-selector suspect-gender"><button class="tag-btn" data-tag="Masculin">Masculin</button><button class="tag-btn" data-tag="Féminin">Féminin</button></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="suspect-actions">
+                    <button class="btn btn-gold" id="btnAddNarcSuspect">+ Ajouter une personne</button>
+                </div>
+            </div>
+
+            <!-- Section 6: Détails de la Saisie -->
+            <div class="form-section">
+                <h3>6. Détails de la Saisie</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Type de Drogue</label>
+                        <div class="tag-selector" id="drugTypeSelector">
+                            <button class="tag-btn" data-tag="Cocaïne">Cocaïne</button>
+                            <button class="tag-btn" data-tag="Méthamphétamine">Méthamphétamine</button>
+                            <button class="tag-btn" data-tag="Héroïne">Héroïne</button>
+                            <button class="tag-btn" data-tag="Cannabis">Cannabis</button>
+                            <button class="tag-btn" data-tag="MDMA / Ecstasy">MDMA / Ecstasy</button>
+                            <button class="tag-btn" data-tag="LSD">LSD</button>
+                            <button class="tag-btn" data-tag="Crack">Crack</button>
+                            <button class="tag-btn" data-tag="Fentanyl">Fentanyl</button>
+                            <button class="tag-btn" data-tag="Opioïdes (Prescription)">Opioïdes (Prescription)</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Poids Saisi (grammes)</label>
+                        <input type="number" id="narcWeight" placeholder="Ex: 250" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Argent Liquide Saisi ($)</label>
+                        <input type="number" id="narcMoney" placeholder="Ex: 15000" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Conditionnement</label>
+                        <div class="tag-selector" id="narcPackaging">
+                            <button class="tag-btn" data-tag="Sachets individuels">Sachets individuels</button>
+                            <button class="tag-btn" data-tag="Briques sous vide">Briques sous vide</button>
+                            <button class="tag-btn" data-tag="Flacons / Fioles">Flacons / Fioles</button>
+                            <button class="tag-btn" data-tag="Vrac non conditionné">Vrac non conditionné</button>
+                            <button class="tag-btn" data-tag="Comprimés / Gélules">Comprimés / Gélules</button>
+                            <button class="tag-btn" data-tag="Dissimulé dans véhicule">Dissimulé dans véhicule</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Affiliation Gang Suspectée</label>
+                        <div class="tag-selector" id="narcGang">
+                            <button class="tag-btn" data-tag="Ballas">Ballas</button>
+                            <button class="tag-btn" data-tag="Families">Families</button>
+                            <button class="tag-btn" data-tag="Vagos">Vagos</button>
+                            <button class="tag-btn" data-tag="Marabunta Grande">Marabunta Grande</button>
+                            <button class="tag-btn" data-tag="Lost MC">Lost MC</button>
+                            <button class="tag-btn" data-tag="Cartel">Cartel</button>
+                            <button class="tag-btn" data-tag="Organisation indépendante">Organisation indépendante</button>
+                            <button class="tag-btn" data-tag="Aucune affiliation identifiée">Aucune affiliation identifiée</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Armes Saisies</label>
+                        <div class="tag-selector" id="narcWeapons">
+                            <button class="tag-btn" data-tag="Pistolet">Pistolet</button>
+                            <button class="tag-btn" data-tag="Pistolet automatique">Pistolet automatique</button>
+                            <button class="tag-btn" data-tag="Fusil à pompe">Fusil à pompe</button>
+                            <button class="tag-btn" data-tag="Fusil d'assaut">Fusil d'assaut</button>
+                            <button class="tag-btn" data-tag="SMG">SMG</button>
+                            <button class="tag-btn" data-tag="Arme blanche">Arme blanche</button>
+                            <button class="tag-btn" data-tag="Aucune arme saisie">Aucune arme saisie</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 7: Charges & Amendes -->
+            <div class="form-section">
+                <h3>7. Charges &amp; Amendes</h3>
+                <p class="roster-help">Cochez les infractions à inclure dans le rapport.</p>
+                <div class="penal-search-bar">
+                    <span class="penal-search-icon">⌕</span>
+                    <input type="text" id="narcPenalSearch" class="penal-search-input" placeholder="Filtrer les chefs d'inculpation…" autocomplete="off">
+                    <span class="penal-search-count" id="narcPenalSearchCount"></span>
+                    <button class="penal-search-clear" id="narcPenalSearchClear" title="Effacer">✕</button>
+                </div>
+                <div class="penal-calculator">
+                    <div class="penal-category" id="narcPenalInfractions"></div>
+                </div>
+                <div class="penal-total-bar">
+                    <div class="penal-total-item">
+                        <span class="penal-total-label">AMENDE TOTALE</span>
+                        <span class="penal-total-value" id="narcPenalFine">$0</span>
+                    </div>
+                    <div class="penal-total-item">
+                        <span class="penal-total-label">PRISON TOTALE</span>
+                        <span class="penal-total-value" id="narcPenalPrison">0 mois</span>
+                    </div>
+                    <div class="penal-total-item">
+                        <span class="penal-total-label">CHARGES</span>
+                        <span class="penal-total-value" id="narcPenalCharges">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 8: Notes & Rapport -->
+            <div class="form-section">
+                <h3>8. Notes Additionnelles (optionnel)</h3>
+                <textarea id="narcNotes" rows="3" placeholder="Informations complémentaires, contexte de l'opération, observations supplémentaires..."></textarea>
+            </div>
+
+            <div class="form-section">
+                <h3>9. Rapport GND Généré</h3>
+                <div class="generate-row">
+                    <button class="btn btn-gold btn-lg" id="btnGenerateNarc">★ GÉNÉRER LE RAPPORT GND</button>
+                    <label class="ai-mode-label" title="Améliorer automatiquement avec Claude AI après génération">
+                        <input type="checkbox" class="ai-mode-check" id="narcAiMode">
+                        <span class="ai-mode-indicator">✦ Avec IA auto</span>
+                    </label>
+                </div>
+                <div class="report-output" id="narcReportOutput">
+                    <p class="placeholder-text">Le rapport apparaîtra ici après génération.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ MODULE: CID MAJOR CRIMES ═══════════ -->
+        <section id="mod-crimes" class="module">
+            <div class="module-header">
+                <h2>CID — Division des Crimes Majeurs</h2>
+                <div class="header-actions">
+                    <button class="btn btn-gold" id="btnCIDExportMD">Exporter Markdown</button>
+                    <button class="btn btn-outline" id="btnCIDExportTXT">Exporter Texte</button>
+                    <button class="btn btn-outline" id="btnCIDReset">Réinitialiser</button>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Informations de la Scène</h3>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Enquêteur(s)</label>
+                        <div class="roster-selector" id="cidRoster"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Numéro de Dossier</label>
+                        <input type="text" id="cidCaseNumber" placeholder="Ex: CID-2026-0042">
+                    </div>
+                    <div class="form-group">
+                        <label>Localisation de la Scène</label>
+                        <div class="location-row">
+                            <input type="text" id="cidLocation" placeholder="Ex: Parking du Vanilla Unicorn">
+                            <button type="button" class="btn-map-pick" data-target="cidLocation" title="Choisir sur la carte GTA V">🗺</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Date & Heure</label>
+                        <input type="datetime-local" id="cidDatetime">
+                    </div>
+                    <div class="form-group">
+                        <label>Type de Crime</label>
+                        <div class="tag-selector" id="cidCrimeType">
+                            <button class="tag-btn" data-tag="Homicide">Homicide</button>
+                            <button class="tag-btn" data-tag="Tentative d'homicide">Tentative d'homicide</button>
+                            <button class="tag-btn" data-tag="Fusillade">Fusillade</button>
+                            <button class="tag-btn" data-tag="Braquage à main armée">Braquage à main armée</button>
+                            <button class="tag-btn" data-tag="Enlèvement / Séquestration">Enlèvement / Séquestration</button>
+                            <button class="tag-btn" data-tag="Incendie criminel">Incendie criminel</button>
+                            <button class="tag-btn" data-tag="Crime organisé">Crime organisé</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Preuves & Indices</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Balistique</label>
+                        <div class="tag-selector" id="cidBallistics">
+                            <button class="tag-btn" data-tag="Douilles 9mm retrouvées">Douilles 9mm</button>
+                            <button class="tag-btn" data-tag="Douilles .45 ACP retrouvées">Douilles .45 ACP</button>
+                            <button class="tag-btn" data-tag="Douilles 5.56 retrouvées">Douilles 5.56</button>
+                            <button class="tag-btn" data-tag="Douilles 7.62 retrouvées">Douilles 7.62</button>
+                            <button class="tag-btn" data-tag="Douilles calibre 12 retrouvées">Calibre 12</button>
+                            <button class="tag-btn" data-tag="Impacts de balles sur mur">Impacts muraux</button>
+                            <button class="tag-btn" data-tag="Impacts de balles sur véhicule">Impacts véhicule</button>
+                            <button class="tag-btn" data-tag="Arme retrouvée sur les lieux">Arme trouvée</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de Douilles Récupérées</label>
+                        <input type="number" id="cidShellCount" placeholder="Ex: 14" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Empreintes</label>
+                        <div class="tag-selector" id="cidFingerprints">
+                            <button class="tag-btn" data-tag="Empreintes relevées sur arme">Sur arme</button>
+                            <button class="tag-btn" data-tag="Empreintes relevées sur véhicule">Sur véhicule</button>
+                            <button class="tag-btn" data-tag="Empreintes relevées sur porte/fenêtre">Porte / Fenêtre</button>
+                            <button class="tag-btn" data-tag="Empreintes partielles exploitables">Partielles exploitables</button>
+                            <button class="tag-btn" data-tag="Aucune empreinte exploitable">Aucune exploitable</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Blessés / Victimes</label>
+                        <div class="tag-selector" id="cidVictims">
+                            <button class="tag-btn" data-tag="1 blessé léger">1 blessé léger</button>
+                            <button class="tag-btn" data-tag="1 blessé grave">1 blessé grave</button>
+                            <button class="tag-btn" data-tag="Plusieurs blessés">Plusieurs blessés</button>
+                            <button class="tag-btn" data-tag="1 victime décédée">1 décédé</button>
+                            <button class="tag-btn" data-tag="Plusieurs victimes décédées">Plusieurs décédés</button>
+                            <button class="tag-btn" data-tag="Aucun blessé">Aucun blessé</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Suspects Identifiés</h3>
+                <div class="suspect-cards" id="cidSuspectCards">
+                    <div class="suspect-card" data-suspect="0">
+                        <div class="suspect-card-header">
+                            <span class="suspect-card-number">Suspect #1</span>
+                            <button class="qa-remove suspect-remove" title="Supprimer" style="display:none;">&times;</button>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group full-width"><label>Rôle</label><div class="tag-selector suspect-role"><button class="tag-btn active" data-tag="Suspect">Suspect</button><button class="tag-btn" data-tag="Victime armée">Victime armée</button><button class="tag-btn" data-tag="Victime non armée">Victime non armée</button><button class="tag-btn" data-tag="Dommage collatéral">Dommage collatéral</button></div></div>
+                            <div class="form-group"><label>Nom</label><input type="text" class="suspect-lastname" placeholder="Nom"></div>
+                            <div class="form-group"><label>Prénom</label><input type="text" class="suspect-firstname" placeholder="Prénom"></div>
+                            <div class="form-group"><label>Date de Naissance</label><input type="text" class="suspect-dob" placeholder="JJ/MM/AAAA"></div>
+                            <div class="form-group"><label>Téléphone</label><input type="text" class="suspect-phone" placeholder="555-XXXX"></div>
+                            <div class="form-group"><label>Sexe</label><div class="tag-selector suspect-gender"><button class="tag-btn" data-tag="Masculin">Masculin</button><button class="tag-btn" data-tag="Féminin">Féminin</button></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="suspect-actions">
+                    <button class="btn btn-gold" id="btnAddCidSuspect">+ Ajouter une personne</button>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Mandats</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Type de Mandat</label>
+                        <div class="tag-selector" id="cidWarrant">
+                            <button class="tag-btn" data-tag="Mandat de perquisition">Perquisition</button>
+                            <button class="tag-btn" data-tag="Mandat d'arrêt">Arrêt</button>
+                            <button class="tag-btn" data-tag="Mandat de saisie">Saisie</button>
+                            <button class="tag-btn" data-tag="Mandat de surveillance">Surveillance</button>
+                            <button class="tag-btn" data-tag="Aucun mandat nécessaire">Aucun nécessaire</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Juge Signataire</label>
+                        <input type="text" id="cidJudge" placeholder="Ex: Juge Williams">
+                    </div>
+                    <div class="form-group">
+                        <label>Cible du Mandat</label>
+                        <input type="text" id="cidWarrantTarget" placeholder="Ex: 1542 Strawberry Ave, Apt 3B">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Rapport CID Généré</h3>
+                <div class="generate-row">
+                    <button class="btn btn-gold btn-lg" id="btnGenerateCID">★ GÉNÉRER LE RAPPORT CID</button>
+                    <label class="ai-mode-label" title="Améliorer automatiquement avec Claude AI après génération">
+                        <input type="checkbox" class="ai-mode-check" id="cidAiMode">
+                        <span class="ai-mode-indicator">✦ Avec IA auto</span>
+                    </label>
+                </div>
+                <div class="report-output" id="cidReportOutput">
+                    <p class="placeholder-text">Le rapport apparaîtra ici après génération.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ MODULE: INTERROGATION ═══════════ -->
+        <section id="mod-interrogation" class="module">
+            <div class="module-header">
+                <h2>Procès-Verbal d'Interrogatoire</h2>
+                <div class="header-actions">
+                    <button class="btn btn-gold" id="btnInterroExportMD">Exporter Markdown</button>
+                    <button class="btn btn-outline" id="btnInterroExportTXT">Exporter Texte</button>
+                    <button class="btn btn-outline" id="btnInterroReset">Réinitialiser</button>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>En-Tête Obligatoire</h3>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Agent(s) Interrogateur(s)</label>
+                        <div class="roster-selector" id="interroRoster"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Personne Interrogée</label>
+                        <input type="text" id="interroSubject" placeholder="Nom complet du suspect / témoin">
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="text" id="interroPhone" placeholder="555-0123">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="text" id="interroEmail" placeholder="email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Avocat(s)</label>
+                        <input type="text" id="interroLawyer" placeholder="Nom de l'avocat, le cas échéant">
+                    </div>
+                    <div class="form-group">
+                        <label>Juge(s)</label>
+                        <input type="text" id="interroJudge" placeholder="Juge assigné, le cas échéant">
+                    </div>
+                    <div class="form-group">
+                        <label>Heure de Début</label>
+                        <input type="time" id="interroStart">
+                    </div>
+                    <div class="form-group">
+                        <label>Heure de Fin</label>
+                        <input type="time" id="interroEnd">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Questions & Réponses</h3>
+                <div id="qaContainer"></div>
+                <div class="qa-actions">
+                    <button class="btn btn-gold" id="btnAddQA">+ Ajouter Question / Réponse</button>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Procès-Verbal Généré</h3>
+                <div class="generate-row">
+                    <button class="btn btn-gold btn-lg" id="btnGenerateInterro">★ GÉNÉRER LE PV</button>
+                    <label class="ai-mode-label" title="Améliorer automatiquement avec Claude AI après génération">
+                        <input type="checkbox" class="ai-mode-check" id="interroAiMode">
+                        <span class="ai-mode-indicator">✦ Avec IA auto</span>
+                    </label>
+                </div>
+                <div class="report-output" id="interroReportOutput">
+                    <p class="placeholder-text">Le procès-verbal apparaîtra ici après génération.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ MODULE: PENAL CODE ═══════════ -->
+        <section id="mod-penal" class="module">
+            <div class="module-header">
+                <h2>Code Pénal — Calculateur de Peines</h2>
+                <div class="header-actions">
+                    <button class="btn btn-gold" id="btnPenalExportMD">Exporter Markdown</button>
+                    <button class="btn btn-outline" id="btnPenalExportTXT">Exporter Texte</button>
+                    <button class="btn btn-outline" id="btnPenalReset">Tout décocher</button>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Suspect</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nom du Suspect</label>
+                        <input type="text" id="penalSuspectName" placeholder="Nom complet">
+                    </div>
+                </div>
+            </div>
+
+            <div class="penal-search-bar">
+                <span class="penal-search-icon">⌕</span>
+                <input type="text" id="penalSearch" class="penal-search-input" placeholder="Filtrer les chefs d'inculpation…" autocomplete="off">
+                <span class="penal-search-count" id="penalSearchCount"></span>
+                <button class="penal-search-clear" id="penalSearchClear" title="Effacer">✕</button>
+            </div>
+            <div class="penal-calculator">
+                <div class="penal-category" id="penalInfractions"></div>
+            </div>
+
+            <div class="penal-total-bar">
+                <div class="penal-total-item">
+                    <span class="penal-total-label">AMENDE TOTALE</span>
+                    <span class="penal-total-value" id="penalTotalFine">$0</span>
+                </div>
+                <div class="penal-total-item">
+                    <span class="penal-total-label">PRISON TOTALE</span>
+                    <span class="penal-total-value" id="penalTotalPrison">0 mois</span>
+                </div>
+                <div class="penal-total-item">
+                    <span class="penal-total-label">CHARGES</span>
+                    <span class="penal-total-value" id="penalTotalCharges">0</span>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Fiche de Charges Générée</h3>
+                <div class="report-output" id="penalReportOutput">
+                    <p class="placeholder-text">Cochez des infractions pour générer la fiche.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast notifications -->
+    <div id="toastContainer"></div>
+
+    <!-- ═══════ MODAL: RÉCAP AVANT GÉNÉRATION (P4-7) ═══════ -->
+    <div class="modal-overlay" id="recapModal">
+        <div class="modal recap-modal">
+            <div class="recap-header">
+                <h3 id="recapTitle">Vérification — Tags retenus</h3>
+                <button class="qa-remove" id="btnRecapClose" title="Annuler">&times;</button>
+            </div>
+            <div class="recap-split">
+                <div class="recap-body" id="recapBody"></div>
+                <div class="recap-preview-pane">
+                    <div class="recap-preview-head">
+                        <span>Aperçu du rapport</span>
+                        <label class="recap-edit-toggle"><input type="checkbox" id="recapEditToggle"> Éditer manuellement</label>
+                    </div>
+                    <pre class="recap-preview" id="recapPreview"></pre>
+                    <textarea class="recap-preview-edit" id="recapPreviewEdit" spellcheck="false" style="display:none;"></textarea>
+                </div>
+            </div>
+            <div class="recap-footer">
+                <button class="btn btn-outline" id="btnRecapCancel">Annuler</button>
+                <button class="btn btn-gold" id="btnRecapConfirm">Confirmer &amp; Générer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ MODAL: RECHERCHE GLOBALE ═══════ -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-modal">
+            <div class="search-input-row">
+                <span class="search-modal-icon">⌕</span>
+                <input type="text" id="searchInput" class="search-modal-input" placeholder="Rechercher une infraction, un code radio, un 10-code…" autocomplete="off" spellcheck="false">
+                <button class="search-close-btn" id="btnCloseSearch" title="Fermer (Echap)">✕</button>
+            </div>
+            <div class="search-hints">
+                <span class="search-hint-tag">§ Code Pénal</span>
+                <span class="search-hint-tag">📻 Codes Radio</span>
+                <span class="search-hint-tag">🚨 Interventions</span>
+                <span class="search-hint-tag">🚔 Indicatifs</span>
+            </div>
+            <div class="search-results" id="searchResults">
+                <div class="search-empty">Tapez pour rechercher dans toute la base de données LSPD.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ MODAL: CARTE GTA V ═══════ -->
+    <div class="modal-overlay" id="gtaMapModal">
+        <div class="gta-map-modal">
+            <div class="gta-map-header">
+                <div>
+                    <h3>🗺 Carte GTA V — Sélectionner une Position</h3>
+                    <span class="map-selected-info" id="mapSelectedInfo">Cliquez sur un marqueur pour sélectionner la position</span>
+                </div>
+                <button class="qa-remove" id="btnCloseGtaMap" title="Fermer">&times;</button>
+            </div>
+            <div id="gtaMap"></div>
+        </div>
+    </div>
+
+    <!-- ═══════ MODAL: CLAUDE AI SETTINGS ═══════ -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal settings-modal">
+            <div class="settings-modal-header">
+                <h3>⚙ Paramètres Claude AI</h3>
+                <button class="qa-remove" id="btnCloseSettings" title="Fermer">&times;</button>
+            </div>
+            <div class="settings-modal-body">
+                <p class="settings-desc">Entrez votre clé API Anthropic et l'URL de votre Worker Cloudflare pour activer l'amélioration automatique des rapports avec Claude AI. Ces informations sont stockées localement dans votre navigateur.</p>
+                <label class="settings-label">Clé API Anthropic</label>
+                <div class="settings-key-row">
+                    <input type="password" id="settingsApiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+                    <button class="btn btn-outline" id="btnToggleKeyVisibility" title="Afficher/Masquer">👁</button>
+                </div>
+                <label class="settings-label" style="margin-top:14px;">URL DU WORKER CLOUDFLARE</label>
+                <input type="url" id="settingsWorkerUrl" class="settings-select" placeholder="https://lspd-proxy.VOTRE-NOM.workers.dev" autocomplete="off" spellcheck="false">
+                <label class="settings-label" style="margin-top:14px;">Modèle Claude</label>
+                <select id="settingsModelSelect" class="settings-select">
+                    <option value="claude-sonnet-5" selected>Claude Sonnet 5 (Qualité — recommandé)</option>
+                    <option value="claude-haiku-4-5-20251001">Claude 4.5 Haiku (Rapide &amp; économique)</option>
+                </select>
+                <div class="settings-actions">
+                    <button class="btn btn-outline" id="btnDeleteApiKey">Supprimer la clé</button>
+                    <button class="btn btn-gold" id="btnSaveApiKey">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="interview.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

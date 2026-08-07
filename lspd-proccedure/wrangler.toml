@@ -1,0 +1,21 @@
+# ════════════════════════════════════════════════════════════════════════
+# LSPD Justice OS — Cloudflare Workers configuration
+# ════════════════════════════════════════════════════════════════════════
+#
+# Aucun secret n'est nécessaire ici : la clé API Anthropic transite via
+# le header `x-api-key`, fournie en clair par le navigateur (saisie dans
+# la modale ⚙ Claude AI). Le Worker se contente de la relayer telle quelle
+# vers https://api.anthropic.com en ajoutant les headers CORS requis.
+#
+# Déploiement :
+#   wrangler login
+#   wrangler deploy
+#
+# Une fois déployé, copier l'URL `https://lspd-proxy.<account>.workers.dev`
+# dans le champ « URL Worker » de la modale ⚙ Claude AI.
+
+name = "lspd-proxy"
+main = "worker.js"
+compatibility_date = "2026-04-26"
+
+# Pas de bindings, pas de KV, pas de variables : Worker stateless.

@@ -693,12 +693,24 @@
         try { localStorage.setItem('lspd_claude_model', model); } catch (e) { /* ignore */ }
     }
 
+    // Normalise une URL de Worker : ajoute le schéma « https:// » s'il manque.
+    // Sans schéma, fetch() résout l'URL comme un chemin relatif à la page courante
+    // (ex. « domaine.workers.dev » → 127.0.0.1:5500/domaine.workers.dev) au lieu
+    // d'attaquer le Worker. On applique la normalisation à la fois à la sauvegarde
+    // ET à la lecture, pour rattraper aussi les valeurs déjà stockées sans schéma.
+    function normalizeWorkerUrl(url) {
+        const trimmed = (url || '').trim();
+        if (!trimmed) return '';
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        return 'https://' + trimmed.replace(/^\/+/, '');
+    }
+
     function loadWorkerUrl() {
-        try { return localStorage.getItem('lspd_worker_url') || ''; } catch (e) { return ''; }
+        try { return normalizeWorkerUrl(localStorage.getItem('lspd_worker_url') || ''); } catch (e) { return ''; }
     }
 
     function saveWorkerUrl(url) {
-        try { localStorage.setItem('lspd_worker_url', url); } catch (e) { /* ignore */ }
+        try { localStorage.setItem('lspd_worker_url', normalizeWorkerUrl(url)); } catch (e) { /* ignore */ }
     }
 
     // ── Settings modal ──
@@ -747,11 +759,23 @@
 
     $('#btnSaveApiKey').addEventListener('click', () => {
         const key = $('#settingsApiKeyInput').value.trim();
-        const workerUrl = $('#settingsWorkerUrl').value.trim();
+        const workerUrl = normalizeWorkerUrl($('#settingsWorkerUrl').value);
+        // Validation : si une URL est fournie, elle doit être analysable après
+        // normalisation — sinon on avertit clairement plutôt que d'échouer en
+        // silence au moment du fetch. Une URL vide reste permise (IA désactivée).
+        if (workerUrl) {
+            let valid = false;
+            try { valid = /^https?:$/.test(new URL(workerUrl).protocol); } catch (e) { valid = false; }
+            if (!valid) {
+                showToast('URL du Worker invalide. Exemple : lspd-proxy.mon-compte.workers.dev', 'error');
+                return; // ne pas enregistrer ni fermer la modale
+            }
+        }
         const model = $('#settingsModelSelect').value;
         saveApiKey(key);
         saveModelPref(model);
         saveWorkerUrl(workerUrl);
+        $('#settingsWorkerUrl').value = workerUrl; // refléter la valeur normalisée
         refreshAiIndicator();
         $('#settingsModal').classList.remove('active');
         showToast(key ? 'Paramètres Claude enregistrés.' : 'Clé API supprimée.');

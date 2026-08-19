@@ -1649,6 +1649,134 @@
         return sent.join(' ');
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // PALPATION DE SÉCURITÉ / FOUILLE — deux régimes, deux récits
+    //
+    // La palpation (Titre IV, ch. 2) est une mesure de sûreté : on dit ce
+    // qu'elle cherchait à écarter. La fouille (ch. 1) est une mesure de
+    // preuve : on dit sur quelle base elle a été entreprise, et ce qu'elle
+    // a produit est inventorié puis placé sous scellés.
+    // ═══════════════════════════════════════════════════════════════════
+
+    const MOTIF_PALPATION_PROSE = {
+        "Comportement laissant craindre le port d'une arme": "son comportement laissant craindre le port d'une arme",
+        'Individu signalé comme armé': "l'intéressé ayant été signalé comme armé",
+        "Contexte d'intervention à risque (coups de feu, braquage)": "le contexte de l'intervention faisant craindre la présence d'une arme",
+        'Sécurité des agents préalablement au transport': "par mesure de sûreté préalablement au transport",
+        'Objet suspect apparent sur la personne': "un objet suspect étant apparent sur sa personne",
+        'Aucun motif particulier — palpation systématique': ''
+    };
+
+    const MOTIF_FOUILLE_PROSE = {
+        "Fouille incidente à l'arrestation": "de manière incidente à l'arrestation",
+        'Suspicion raisonnable de détention de preuves': "sur la base de suspicions raisonnables de détention de preuves",
+        "Consentement exprès de l'individu": "avec le consentement exprès de l'intéressé",
+        "Exécution d'un mandat de perquisition": "en exécution d'un mandat de perquisition",
+        "Antécédents judiciaires de l'individu": "au regard des antécédents judiciaires de l'intéressé"
+    };
+
+    // Les libellés de la grille des saisies sont des constats (« Arme à feu
+    // saisie ») et non des groupes nominaux : ils ne peuvent pas être insérés
+    // tels quels après « la saisie de ».
+    const EVIDENCE_PROSE = {
+        'Arme à feu saisie': 'une arme à feu',
+        'Arme(s) blanche(s) saisie(s)': 'une arme blanche',
+        'Munitions saisies': 'des munitions',
+        'Argent liquide non déclaré': "une somme d'argent liquide non déclarée",
+        'Faux documents / Pièces falsifiées': 'des documents falsifiés',
+        "Matériel d'effraction": "du matériel d'effraction",
+        'Téléphone crypté / Prepaid': 'un téléphone crypté',
+        'Téléphone à usage unique / Burner': 'un téléphone à usage unique',
+        'Masque de ski / Cagoule': 'une cagoule',
+        'Balaclava / Tenue de cambriolage': 'une tenue de cambriolage',
+        'Gilet pare-balles illégal': 'un gilet pare-balles illégal',
+        "Fausse plaque d'immatriculation": "une fausse plaque d'immatriculation",
+        'Clés de véhicule volé': 'des clés de véhicule volé',
+        'Outil de crochetage': "un outil de crochetage",
+        'Liens de contention': 'des liens de contention',
+        'Radio criminelle / Oreillette': 'une radio criminelle',
+        'Plans du site / Bâtiment': 'des plans du site'
+    };
+
+    // « Complicité avérée » figure dans la même grille mais ne désigne pas un
+    // objet : elle n'a rien à faire dans une phrase de saisie.
+    const EVIDENCE_NON_OBJET = /complicité/i;
+
+    function evidenceProse(tag) {
+        if (EVIDENCE_PROSE[tag]) return EVIDENCE_PROSE[tag];
+        return withArticle(String(tag).replace(/\s*saisie?e?s?\s*$/i, '').trim().toLowerCase());
+    }
+
+    // Liste des éléments saisis en patrouille, enrichie du modèle et du
+    // numéro de série de l'arme ainsi que du calibre des munitions.
+    function patrolSaisies() {
+        const brut = (state.patrol.evidence || []).filter(t => !EVIDENCE_NON_OBJET.test(t));
+        const modele = ($('#patrolFirearmModelCustom') && $('#patrolFirearmModelCustom').value.trim()) || '';
+        const serie = ($('#patrolFirearmSerial') && $('#patrolFirearmSerial').value.trim()) || '';
+        const calibres = state.patrol.ammoTypes || [];
+
+        return brut.map(tag => {
+            if (/arme à feu/i.test(tag) && modele) {
+                return `une arme de type ${modele}${serie ? ` (identifiant : ${serie})` : ''}`;
+            }
+            if (/munitions/i.test(tag) && calibres.length) {
+                return `des munitions de calibre ${lspdJoinFr(calibres)}`;
+            }
+            return evidenceProse(tag);
+        });
+    }
+
+    // `objets` : libellés des éléments saisis. `feminin` accorde les pronoms.
+    function controleLines(moduleKey, suspRef, objets, feminin) {
+        const cf = k => complianceGet(moduleKey, k);
+        const nature = cf('natureControle');
+        if (!nature || nature === 'Aucune palpation ni fouille') return [];
+
+        const auteur = cf('auteurControle');
+        const liste = (objets || []).filter(Boolean).map(o => String(o).trim());
+        const saisie = liste.length ? lspdJoinFr(liste) : '';
+        const soi = feminin ? 'elle-même' : 'lui-même';
+        const lines = [];
+
+        const palpation = /Palpation/.test(nature);
+        const fouille = /[Ff]ouille/.test(nature);
+
+        if (palpation) {
+            // Une palpation qui aboutit à une saisie se raconte par son
+            // résultat ; sinon par la vérification qu'elle opérait.
+            if (saisie && !fouille) {
+                lines.push(`La palpation de sécurité${auteur ? `, réalisée par ${auteur},` : ''}`
+                    + ` a permis la saisie sur ${suspRef} ${deElide(saisie)}.`);
+            } else {
+                const motif = MOTIF_PALPATION_PROSE[cf('motifPalpation')] || '';
+                let s = `Une palpation de sécurité a été réalisée sur ${suspRef}`;
+                if (auteur) s += ` par ${auteur}`;
+                if (motif) s += `, ${motif}`;
+                s += `, afin de vérifier l'absence de tout objet dangereux pour ${soi} ou pour autrui.`;
+                lines.push(s);
+            }
+            if (/abri/i.test(cf('discretionPalpation'))) {
+                lines.push("Elle a été effectuée à l'abri du regard du public.");
+            }
+        }
+
+        if (fouille) {
+            const motif = MOTIF_FOUILLE_PROSE[cf('motifFouille')] || '';
+            let s = palpation ? 'Une fouille a ensuite été réalisée' : `Une fouille a été réalisée sur ${suspRef}`;
+            if (auteur && !palpation) s += ` par ${auteur}`;
+            if (motif) s += ` ${motif}`;
+            lines.push(s + '.');
+            if (saisie) {
+                lines.push(`Elle a permis la saisie ${deElide(saisie)}.`);
+                lines.push("L'ensemble a fait l'objet d'un inventaire détaillé et d'un placement sous scellés.");
+            }
+        } else if (palpation && saisie) {
+            lines.push("L'élément saisi a été placé sous scellés.");
+        }
+
+        return lines;
+    }
+
     // Moyens de contrainte → groupe nominal utilisable dans une phrase.
     // Les libellés de tags sont écrits du point de vue de l'interface
     // (« Les agents ont riposté par arme à feu ») et ne peuvent pas être
@@ -1742,6 +1870,10 @@
         // que ceux-ci soient énoncés préalablement.
         let fouilleRendue = false;
         function fouilleLines() {
+            const feminin = !!(suspect && suspect.gender === 'Féminin');
+            const lignes = controleLines('patrol', suspRef, patrolSaisies(), feminin);
+            if (lignes.length) return lignes;
+            // Repli sur les tags historiques si le régime n'est pas renseigné.
             const sp = tags.search_person || [];
             const sv = tags.search_vehicle || [];
             if (!sp.length && !sv.length) return [];
@@ -4959,29 +5091,27 @@
         },
         {
             id: 'fouille',
-            label: 'Fouille & saisie',
-            hint: 'Palpation / fouille et objets éventuellement saisis',
+            label: 'Palpation / fouille & saisie',
+            hint: 'Objets saisis — le régime se choisit dans « Chronologie & conformité »',
             fields: [
-                { key: 'base', type: 'select', label: 'Base légale de la fouille', options: [
-                    "avec le consentement de l'individu",
-                    "au titre d'une palpation de sécurité",
-                    "de manière incidente à l'arrestation",
-                    "sur le fondement d'un mandat de perquisition"
-                ] },
                 { key: 'objets', type: 'text', label: 'Objet(s) saisi(s) (optionnel)', placeholder: 'Ex : une arme de poing, 3 sachets de stupéfiants…' },
                 { key: 'arme', type: 'text', label: 'Arme saisie — modèle (optionnel)', placeholder: 'Ex : Glock 17' },
                 { key: 'armeId', type: 'text', label: 'Arme saisie — identifiant / n° de série (optionnel)', placeholder: 'Ex : 1783196078854' }
             ],
-            render: (d, ctx) => {
-                const base = d.base || "au titre d'une palpation de sécurité";
-                const verb = ctx.plural ? 'ont procédé' : 'a procédé';
-                let s = `À l'issue de l'interpellation, ${ctx.subjectLower} ${verb} à une fouille ${base}.`;
-                if (d.objets) {
-                    s += ` Cette fouille a permis la saisie ${deElide(d.objets)}`;
-                    if (d.arme) s += ` ( Arme : ${d.arme}${d.armeId ? ` - Identifiant : ${d.armeId}` : ''} )`;
-                    s += '.';
-                }
-                return s;
+            // Le régime (palpation de sécurité ou fouille) et son motif sont
+            // saisis dans la section conformité : les deux relèvent de chapitres
+            // distincts du Titre IV et ne se rédigent pas de la même façon.
+            render: (d) => {
+                const objets = [];
+                if (d.objets) objets.push(d.objets);
+                if (d.arme) objets.push(`une arme de type ${d.arme}${d.armeId ? ` (identifiant : ${d.armeId})` : ''}`);
+
+                const lignes = controleLines('standard', "l'individu", objets, false);
+                if (lignes.length) return lignes.join(' ');
+
+                // Aucun régime renseigné : on s'en tient aux éléments saisis.
+                if (!objets.length) return '';
+                return `La saisie ${deElide(lspdJoinFr(objets.map(o => o.toLowerCase())))} a été opérée sur l'individu.`;
             }
         },
         {
@@ -5424,7 +5554,11 @@
             miranda: { heure: '', reaction: '' },
             lawyer: { requested: false, heureContact: '', heureArrivee: '' },
             transport: { heure: '', destination: '' },
-            fouille: { effectuee: false, base: '', objets: [] },
+            fouille: {
+                effectuee: false, base: '', objets: [],
+                nature: '', motifPalpation: '', motifFouille: '',
+                discretionPalpation: '', memeSexeFouille: '', auteur: ''
+            },
             charges: [], heureArrestation: '', heurePresentationProcureur: '',
             chronoStamps: [], reportText: ''
         };
@@ -5459,6 +5593,15 @@
         ctx.uniteRenfort = v('uniteRenfort');
         ctx.manoeuvreInterception = v('manoeuvreInterception');
         ctx.issuePoursuite = v('issuePoursuite');
+        ctx.fouille.nature = v('natureControle');
+        ctx.fouille.motifPalpation = v('motifPalpation');
+        ctx.fouille.motifFouille = v('motifFouille');
+        ctx.fouille.discretionPalpation = v('discretionPalpation');
+        ctx.fouille.memeSexeFouille = v('memeSexeFouille');
+        ctx.fouille.auteur = v('auteurControle');
+        if (ctx.fouille.nature && ctx.fouille.nature !== 'Aucune palpation ni fouille') {
+            ctx.fouille.effectuee = true;
+        }
         ctx.secteur = v('secteur');
         ctx.heureFinPoursuite = v('heureFinPoursuite');
         ctx.lieuFinPoursuite = v('lieuFinPoursuite');
@@ -5539,9 +5682,9 @@
         ctx.lawyer.requested = on('avocat');
 
         ctx.fouille.effectuee = on('fouille');
-        ctx.fouille.base = fld('fouille', 'base');
         ctx.fouille.objets = fld('fouille', 'objets')
             ? fld('fouille', 'objets').split(/\s*(?:,|;| et )\s*/).filter(Boolean) : [];
+        if (fld('fouille', 'arme')) ctx.fouille.objets.push(fld('fouille', 'arme'));
 
         ctx.denouement = on('poursuite') || on('usage_force') || on('cloture')
             || on('interpellation_differee') || on('pv');

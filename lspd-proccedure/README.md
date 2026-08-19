@@ -49,6 +49,27 @@ conditionnelles (Art. 123, 2-4-1, 2-4-2, 2-4-4, 5-3-1). Ils ne se compensent pas
 Chaque élément manquant produit une **relance** : la question posée à l'agent,
 l'article qui la fonde, et un bouton qui l'amène directement au champ concerné.
 
+### Palpation de sécurité ou fouille
+
+Le Titre IV du code de procédure sépare deux régimes que l'application ne
+confondait pas moins jusqu'ici. Le champ « Nature du contrôle effectué » les
+distingue désormais, et tout le reste en découle : les champs proposés, le
+paragraphe rédigé et les articles cités.
+
+| | Palpation de sécurité (ch. 2) | Fouille (ch. 1) |
+|---|---|---|
+| Finalité | sûreté — écarter un objet dangereux (4-2-3) | preuve — rechercher des éléments (4-1-2) |
+| Condition | nécessité pour la sécurité (4-2-2), **jamais systématique** (4-2-1) | suspicion raisonnable sur éléments objectifs (4-1-2, 4-1-3) |
+| Droits | pas d'antériorité exigée | **énoncés au préalable** (4-1-4) |
+| Même sexe | — | dans la mesure du possible (4-1-1) |
+| Discrétion | à l'abri du public si possible (4-2-4) | — |
+| Suites | scellés au régime général (7-3-1) | inventaire détaillé + scellés (4-1-5, 4-1-6) |
+
+Deux motifs contraires au code sont proposés dans les listes et signalés comme
+faiblesses par la fiche de défense : la palpation « systématique », que
+l'Art. 4-2-1 exclut, et la fouille fondée sur les antécédents judiciaires, que
+l'Art. 4-1-3 écarte expressément.
+
 ### Préparer la défense
 
 Une fois le rapport validé, le bouton **⚖ Défense** produit une fiche de préparation
@@ -145,6 +166,8 @@ node tools/test-scenarios.js          # 46 assertions — checklist & défense
 node tools/test-scenarios.js --print  # + un exemple de fiche de défense
 node tools/test-reference-report.js   # fidélité au modèle de rapport du DOJ
 node tools/test-reference-report.js --print   # + le rapport généré
+node tools/test-palpation-fouille.js  # distinction des deux régimes du Titre IV
+node tools/test-palpation-fouille.js --print  # + les deux paragraphes produits
 ```
 
 `test-scenarios.js` couvre trois scénarios — interpellation simple, poursuite avec
@@ -159,6 +182,10 @@ n'omet **aucune** des 29 informations qu'il contient. Le rapport généré peut 
 plus riche que le modèle — il porte des mentions que le code exige et que le modèle
 n'a pas (justification de l'usage de la force au titre des Art. 121 et 123,
 résultats de fouille au titre de l'Art. 2-2-7) — mais jamais plus pauvre.
+
+`test-palpation-fouille.js` vérifie sur une même intervention que basculer de la
+palpation à la fouille change les champs proposés, le paragraphe rédigé et les
+articles cités, dans les deux modules.
 
 ## Lancement
 

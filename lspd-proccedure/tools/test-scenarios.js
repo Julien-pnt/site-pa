@@ -390,7 +390,111 @@ function anglesMorts() {
         RULES.citation('penal:629-bis'));
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// PALPATION DE SÉCURITÉ vs FOUILLE
+// Deux chapitres distincts du Titre IV. Le régime retenu doit changer les
+// articles cités et les points d'attaque soulevés.
+// ═══════════════════════════════════════════════════════════════════════
+function palpationVsFouille() {
+    const NAME = 'Palpation vs fouille';
+    const commun = {
+        secteur: 'Vespucci', lieu: 'Playa Vista',
+        agents: AGENTS, motif: 'une demande de renfort', denouement: 'individus interpellés',
+        suspect: { nom: 'LOTARE', prenom: 'Lucie', dob: '14/06/1994', sexe: 'Féminin' },
+        cuffed: true, verifCasier: 'Effectuée — aucun antécédent',
+        miranda: { heure: '23h32', reaction: 'A déclaré les avoir compris' },
+        transport: { heure: '23h28', destination: 'poste de Vespucci' },
+        charges: [{ name: "Port d'arme illégale", categorie: 'Délit majeur', articles: ['penal:241-1'] }],
+        heureArrestation: '23h25', heurePresentationProcureur: '23h50'
+    };
+
+    const base = { effectuee: true, base: '', objets: ['un pistolet Glock 17 modifié'], auteur: 'le Police Officer II Jesse McCoy' };
+
+    const palpation = withStamps(baseCtx(Object.assign({}, commun, {
+        fouille: Object.assign({}, base, {
+            nature: 'Palpation de sécurité',
+            motifPalpation: "Individu signalé comme armé",
+            discretionPalpation: "Réalisée à l'abri du regard du public",
+            motifFouille: '', memeSexeFouille: ''
+        })
+    })));
+    const fouille = withStamps(baseCtx(Object.assign({}, commun, {
+        fouille: Object.assign({}, base, {
+            nature: 'Fouille',
+            motifFouille: 'Suspicion raisonnable de détention de preuves',
+            memeSexeFouille: 'Agent du même sexe que la personne fouillée',
+            motifPalpation: '', discretionPalpation: ''
+        })
+    })));
+
+    const auditP = RULES.auditProcedure(palpation);
+    const auditF = RULES.auditProcedure(fouille);
+    const actifs = a => a.filter(r => r.status !== 'na').map(r => r.id);
+
+    check(NAME, 'la palpation déclenche les règles du chapitre 2',
+        actifs(auditP).includes('palpation_conditions') && actifs(auditP).includes('palpation_discretion'),
+        actifs(auditP).join(', '));
+    check(NAME, 'la palpation ne déclenche pas les règles de la fouille',
+        !actifs(auditP).includes('fouille_conditions') && !actifs(auditP).includes('fouille_meme_sexe'));
+    check(NAME, "la palpation écarte l'antériorité des droits (propre à la fouille)",
+        auditP.find(r => r.id === 'droits_avant_fouille').status === 'na');
+
+    check(NAME, 'la fouille déclenche les règles du chapitre 1',
+        actifs(auditF).includes('fouille_conditions') && actifs(auditF).includes('fouille_meme_sexe'));
+    check(NAME, 'la fouille ne déclenche pas les règles de la palpation',
+        !actifs(auditF).includes('palpation_conditions') && !actifs(auditF).includes('palpation_discretion'));
+    check(NAME, "la fouille impose l'antériorité des droits",
+        auditF.find(r => r.id === 'droits_avant_fouille').status !== 'na');
+
+    // Les articles cités doivent différer.
+    const artP = new Set(); auditP.filter(r => r.status !== 'na').forEach(r => (r.articles || []).forEach(a => artP.add(a)));
+    const artF = new Set(); auditF.filter(r => r.status !== 'na').forEach(r => (r.articles || []).forEach(a => artF.add(a)));
+    check(NAME, 'la palpation cite les Art. 4-2-x', [...artP].some(a => /4-2-/.test(a)), [...artP].join(' '));
+    check(NAME, 'la fouille cite les Art. 4-1-x', [...artF].some(a => /4-1-/.test(a)), [...artF].join(' '));
+    check(NAME, 'la palpation ne cite pas les conditions de la fouille', ![...artP].includes('proc:4-1-2'));
+    check(NAME, 'la fouille ne cite pas les conditions de la palpation', ![...artF].includes('proc:4-2-2'));
+
+    // Les deux motifs contraires au code doivent être signalés.
+    const palpSysteme = withStamps(baseCtx(Object.assign({}, commun, {
+        fouille: Object.assign({}, base, {
+            nature: 'Palpation de sécurité',
+            motifPalpation: 'Aucun motif particulier — palpation systématique'
+        })
+    })));
+    const rSys = RULES.auditProcedure(palpSysteme).find(r => r.id === 'palpation_conditions');
+    check(NAME, "la palpation systématique est signalée (Art. 4-2-1)", rSys.status === 'fail', rSys.detail);
+
+    const fouilleAntec = withStamps(baseCtx(Object.assign({}, commun, {
+        fouille: Object.assign({}, base, {
+            nature: 'Fouille',
+            motifFouille: "Antécédents judiciaires de l'individu"
+        })
+    })));
+    const rAnt = RULES.auditProcedure(fouilleAntec).find(r => r.id === 'fouille_conditions');
+    check(NAME, 'la fouille fondée sur les antécédents est signalée (Art. 4-1-3)',
+        rAnt.status === 'fail', rAnt.detail);
+
+    // Le motif manquant bloque la validation, quel que soit le régime.
+    const sansMotif = withStamps(baseCtx(Object.assign({}, commun, {
+        fouille: Object.assign({}, base, { nature: 'Fouille', motifFouille: '' })
+    })));
+    const evSans = RULES.evaluate(sansMotif);
+    check(NAME, 'motif de contrôle manquant → rapport refusé', !evSans.valid,
+        'score ' + evSans.percent + ' %');
+    check(NAME, 'le motif manquant est critique',
+        evSans.criticalMissing.some(m => m.id === 'controle_motif'));
+
+    // La fiche de défense doit refléter la distinction.
+    const docP = DEFENSE.renderText(DEFENSE.buildDefenseDoc(palpation, RULES.evaluate(palpation)));
+    const docF = DEFENSE.renderText(DEFENSE.buildDefenseDoc(fouille, RULES.evaluate(fouille)));
+    check(NAME, 'la fiche palpation cite l\'Art. 4-2-3', /Art\. 4-2-3/.test(docP));
+    check(NAME, 'la fiche fouille cite l\'Art. 4-1-2', /Art\. 4-1-2/.test(docF));
+    check(NAME, 'la fiche palpation ne cite pas l\'Art. 4-1-2', !/Art\. 4-1-2/.test(docP));
+    check(NAME, 'la fiche fouille ne cite pas l\'Art. 4-2-3', !/Art\. 4-2-3/.test(docF));
+}
+
 anglesMorts();
+palpationVsFouille();
 
 // ─── Couverture par catégorie du plan ───
 // Les 10 catégories du cahier des charges, chacune adossée aux items de

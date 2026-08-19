@@ -61,10 +61,15 @@
         'proc:2-4-4': "Surveillance médicale post-soins (1 h maximum)",
         'proc:4-1-1': "Fouille par une personne du même sexe",
         'proc:4-1-2': "Fouille fondée sur une suspicion raisonnable",
+        'proc:4-1-3': "Éléments objectifs excluant tout critère discriminatoire",
         'proc:4-1-4': "Droits énoncés préalablement à la fouille",
         'proc:4-1-5': "Inventaire détaillé de la fouille",
         'proc:4-1-6': "Mise sous scellés des éléments saisis",
-        'proc:4-2-2': "Palpation de sécurité — nécessité",
+        'proc:4-2-1': "Palpation de sécurité — mesure de sûreté non systématique",
+        'proc:4-2-2': "Palpation de sécurité — nécessité pour la sécurité",
+        'proc:4-2-3': "Palpation de sécurité — finalité limitée aux objets dangereux",
+        'proc:4-2-4': "Palpation de sécurité — à l'abri du regard du public",
+        'proc:4-2-5': "Habilitation à procéder au contrôle et à la palpation",
         'proc:4-3-2': "Menottage — circonstances objectives",
         'proc:5-1-2': "Entretien avocat avant audition (15 min)",
         'proc:5-2-5': "Remise du rapport à l'avocat",
@@ -243,6 +248,87 @@
                 'Arrêt volontaire du conducteur'
             ],
             when: function (ctx) { return ctx.pursuit; }
+        },
+
+        // ─── Palpation de sécurité / fouille ───
+        // Deux régimes distincts, à ne pas confondre. La palpation (Titre IV,
+        // chapitre 2) est une mesure de SÛRETÉ : elle vérifie l'absence
+        // d'objet dangereux, n'est jamais systématique et n'exige pas que les
+        // droits aient été notifiés. La fouille (chapitre 1) est une mesure de
+        // PREUVE : elle suppose une suspicion raisonnable, impose que les
+        // droits aient été énoncés au préalable, puis un inventaire détaillé
+        // et une mise sous scellés.
+        {
+            key: 'natureControle', group: 'Palpation & fouille', type: 'select',
+            label: 'Nature du contrôle effectué',
+            hint: 'Palpation = sûreté (Art. 4-2-3). Fouille = recherche de preuves (Art. 4-1-2).',
+            options: [
+                '',
+                'Aucune palpation ni fouille',
+                'Palpation de sécurité',
+                'Fouille',
+                'Palpation de sécurité puis fouille'
+            ],
+            when: function () { return true; }
+        },
+        {
+            key: 'motifPalpation', group: 'Palpation & fouille', type: 'select',
+            label: 'Motif de la palpation de sécurité',
+            hint: "Art. 4-2-2 — réservée aux cas nécessaires à la sécurité de l'agent ou d'autrui.",
+            options: [
+                '',
+                "Comportement laissant craindre le port d'une arme",
+                'Individu signalé comme armé',
+                "Contexte d'intervention à risque (coups de feu, braquage)",
+                'Sécurité des agents préalablement au transport',
+                'Objet suspect apparent sur la personne',
+                'Aucun motif particulier — palpation systématique'
+            ],
+            when: function (ctx) { return /Palpation/.test(ctx.fouille.nature); }
+        },
+        {
+            key: 'discretionPalpation', group: 'Palpation & fouille', type: 'select',
+            label: 'Conditions de réalisation de la palpation',
+            hint: 'Art. 4-2-4 — à l\'abri du regard du public chaque fois que possible.',
+            options: [
+                '',
+                'Réalisée à l\'abri du regard du public',
+                'Réalisée en public, les circonstances ne permettaient pas autrement'
+            ],
+            when: function (ctx) { return /Palpation/.test(ctx.fouille.nature); }
+        },
+        {
+            key: 'motifFouille', group: 'Palpation & fouille', type: 'select',
+            label: 'Base légale de la fouille',
+            hint: 'Art. 4-1-2 — raisons fondées et suspicions raisonnables de détention de preuves.',
+            options: [
+                '',
+                "Fouille incidente à l'arrestation",
+                'Suspicion raisonnable de détention de preuves',
+                "Consentement exprès de l'individu",
+                "Exécution d'un mandat de perquisition",
+                "Antécédents judiciaires de l'individu"
+            ],
+            when: function (ctx) { return /Fouille|fouille/.test(ctx.fouille.nature); }
+        },
+        {
+            key: 'memeSexeFouille', group: 'Palpation & fouille', type: 'select',
+            label: 'Agent ayant réalisé la fouille',
+            hint: 'Art. 4-1-1 — même sexe que la personne fouillée, dans la mesure du possible.',
+            options: [
+                '',
+                'Agent du même sexe que la personne fouillée',
+                'Aucun agent du même sexe disponible sur place'
+            ],
+            when: function (ctx) { return /Fouille|fouille/.test(ctx.fouille.nature); }
+        },
+        {
+            key: 'auteurControle', group: 'Palpation & fouille', type: 'text',
+            label: 'Agent ayant procédé au contrôle',
+            placeholder: 'Ex : le Police Officer II Jesse McCoy',
+            when: function (ctx) {
+                return !!ctx.fouille.nature && ctx.fouille.nature !== 'Aucune palpation ni fouille';
+            }
         },
 
         // ─── Repères de lieu ───
@@ -520,11 +606,27 @@
             field: 'verifPlaque', articles: ['proc:2-1-3']
         },
         {
-            id: 'fouille_resultat', label: 'Résultat de la fouille et inventaire', critical: true, weight: 1,
+            id: 'fouille_resultat', label: 'Nature du contrôle effectué et son résultat', critical: true, weight: 1,
             when: always,
-            test: function (ctx) { return ctx.fouille.effectuee; },
-            probe: 'Une fouille a-t-elle été réalisée ? Sur quelle base, et qu\'a-t-elle donné ?',
-            field: 'fouille', articles: ['proc:2-2-7', 'proc:4-1-5']
+            test: function (ctx) { return !!ctx.fouille.nature || ctx.fouille.effectuee; },
+            probe: 'Une palpation de sécurité ou une fouille a-t-elle été réalisée ? Les deux régimes sont distincts : précisez lequel.',
+            field: 'natureControle', articles: ['proc:2-2-7', 'proc:4-1-5']
+        },
+        {
+            // Palpation et fouille ne se justifient pas de la même manière :
+            // sûreté immédiate pour l'une, suspicion raisonnable pour l'autre.
+            id: 'controle_motif', label: 'Motif du contrôle, propre à son régime', critical: true, weight: 1,
+            when: function (ctx) {
+                return !!ctx.fouille.nature && ctx.fouille.nature !== 'Aucune palpation ni fouille';
+            },
+            test: function (ctx) {
+                var n = ctx.fouille.nature || '';
+                if (/Palpation/.test(n) && !ctx.fouille.motifPalpation) return false;
+                if (/[Ff]ouille/.test(n) && !ctx.fouille.motifFouille) return false;
+                return true;
+            },
+            probe: "Qu'est-ce qui justifiait ce contrôle ? Une palpation suppose un risque pour la sécurité (Art. 4-2-2), une fouille une suspicion raisonnable de détention de preuves (Art. 4-1-2).",
+            field: 'motifPalpation', articles: ['proc:4-1-2', 'proc:4-2-2']
         },
         {
             id: 'charges', label: 'Charges retenues au moment de l\'arrestation', critical: true, weight: 1,
@@ -714,16 +816,122 @@
             }
         },
         {
+            // L'exigence d'antériorité des droits ne pèse QUE sur la fouille.
+            // La palpation, mesure de sûreté immédiate, n'y est pas soumise.
             id: 'droits_avant_fouille',
             label: 'Droits énoncés préalablement à la fouille',
             articles: ['proc:4-1-4'],
             phase: 'Fouille & scellés',
             question: "Les droits de mon client lui ont-ils été énoncés AVANT la fouille, comme l'exige l'article 4-1-4 ?",
             run: function (ctx) {
-                if (!ctx.fouille.effectuee) return { status: 'na', detail: 'Aucune fouille documentée.' };
+                var n = ctx.fouille.nature || '';
+                if (!/[Ff]ouille/.test(n)) {
+                    return {
+                        status: 'na',
+                        detail: /Palpation/.test(n)
+                            ? "Seule une palpation de sécurité a été réalisée : mesure de sûreté, elle n'est pas soumise à l'antériorité des droits."
+                            : 'Aucune fouille documentée.'
+                    };
+                }
                 var hd = parseHeure(ctx.miranda.heure);
                 if (hd === null) return { status: 'warn', detail: "Heure de notification des droits manquante : l'antériorité sur la fouille ne peut pas être établie." };
                 return { status: 'ok', detail: 'Droits notifiés à ' + formatHeure(ctx.miranda.heure) + '. Vérifiez que le récit place bien la fouille après cette heure.' };
+            }
+        },
+        {
+            id: 'palpation_conditions',
+            label: 'Palpation de sécurité — nécessité et absence de systématisme',
+            articles: ['proc:4-2-1', 'proc:4-2-2', 'proc:4-2-3'],
+            phase: 'Fouille & scellés',
+            question: "Qu'est-ce qui rendait cette palpation nécessaire à la sécurité, sachant qu'elle ne peut pas être systématique ?",
+            run: function (ctx) {
+                if (!/Palpation/.test(ctx.fouille.nature || '')) {
+                    return { status: 'na', detail: 'Aucune palpation de sécurité documentée.' };
+                }
+                var m = ctx.fouille.motifPalpation;
+                if (!m) return {
+                    status: 'fail',
+                    detail: "Une palpation de sécurité est documentée sans motif consigné.",
+                    fix: "L'Art. 4-2-2 la réserve aux cas nécessaires à la sécurité de l'agent ou d'autrui. Indiquez ce qui la justifiait."
+                };
+                if (/systématique/i.test(m)) return {
+                    status: 'fail',
+                    detail: "Le motif retenu est une palpation systématique, ce que l'Art. 4-2-1 exclut expressément.",
+                    fix: "La palpation n'a pas de caractère systématique. Rattachez-la à un risque concret pour la sécurité, ou retirez-la de la procédure."
+                };
+                return { status: 'ok', detail: 'Motif consigné : ' + m + ' — compatible avec la finalité de sûreté de l\'Art. 4-2-3.' };
+            }
+        },
+        {
+            id: 'palpation_discretion',
+            label: 'Palpation de sécurité — discrétion',
+            articles: ['proc:4-2-4'],
+            phase: 'Fouille & scellés',
+            question: "Cette palpation s'est-elle déroulée à l'abri du regard du public ?",
+            run: function (ctx) {
+                if (!/Palpation/.test(ctx.fouille.nature || '')) {
+                    return { status: 'na', detail: 'Aucune palpation de sécurité documentée.' };
+                }
+                var d = ctx.fouille.discretionPalpation;
+                if (!d) return {
+                    status: 'warn',
+                    detail: "Les conditions de réalisation de la palpation ne sont pas consignées.",
+                    fix: "L'Art. 4-2-4 impose la discrétion chaque fois que les circonstances le permettent."
+                };
+                if (/en public/i.test(d)) return {
+                    status: 'warn',
+                    detail: "Palpation réalisée en public, les circonstances ne permettant pas autrement.",
+                    fix: "Décrivez dans le récit ce qui empêchait de la soustraire au regard du public."
+                };
+                return { status: 'ok', detail: "Palpation réalisée à l'abri du regard du public, conformément à l'Art. 4-2-4." };
+            }
+        },
+        {
+            id: 'fouille_conditions',
+            label: 'Fouille — suspicion raisonnable sur éléments objectifs',
+            articles: ['proc:4-1-2', 'proc:4-1-3'],
+            phase: 'Fouille & scellés',
+            question: "Sur quels éléments objectifs reposait la suspicion raisonnable ayant fondé cette fouille ?",
+            run: function (ctx) {
+                if (!/[Ff]ouille/.test(ctx.fouille.nature || '')) {
+                    return { status: 'na', detail: 'Aucune fouille documentée.' };
+                }
+                var m = ctx.fouille.motifFouille;
+                if (!m) return {
+                    status: 'fail',
+                    detail: 'Une fouille est documentée sans base légale consignée.',
+                    fix: "L'Art. 4-1-2 exige des raisons fondées et des suspicions raisonnables de détention de preuves."
+                };
+                if (/antécédents/i.test(m)) return {
+                    status: 'fail',
+                    detail: "La fouille est fondée sur les antécédents judiciaires de l'individu, critère que l'Art. 4-1-3 exclut expressément.",
+                    fix: "Fondez la fouille sur des éléments objectifs et rationnels propres aux faits : comportement constaté, objet aperçu, déclarations. Les antécédents ne peuvent pas la justifier."
+                };
+                return { status: 'ok', detail: 'Base légale retenue : ' + m + '.' };
+            }
+        },
+        {
+            id: 'fouille_meme_sexe',
+            label: 'Fouille par une personne du même sexe',
+            articles: ['proc:4-1-1'],
+            phase: 'Fouille & scellés',
+            question: "La fouille de mon client a-t-elle été réalisée par un agent du même sexe ?",
+            run: function (ctx) {
+                if (!/[Ff]ouille/.test(ctx.fouille.nature || '')) {
+                    return { status: 'na', detail: 'Aucune fouille documentée.' };
+                }
+                var v = ctx.fouille.memeSexeFouille;
+                if (!v) return {
+                    status: 'warn',
+                    detail: "Le sexe de l'agent ayant réalisé la fouille n'est pas consigné.",
+                    fix: "L'Art. 4-1-1 l'exige dans la mesure du possible : précisez-le."
+                };
+                if (/Aucun agent/i.test(v)) return {
+                    status: 'warn',
+                    detail: "Fouille réalisée sans agent du même sexe disponible sur place.",
+                    fix: "L'Art. 4-1-1 réserve cette exigence à la mesure du possible : documentez l'indisponibilité."
+                };
+                return { status: 'ok', detail: "Fouille réalisée par un agent du même sexe, conformément à l'Art. 4-1-1." };
             }
         },
         {
@@ -733,13 +941,23 @@
             phase: 'Fouille & scellés',
             question: "Où est l'inventaire détaillé des objets saisis, et sous quel numéro de scellé figurent-ils ?",
             run: function (ctx) {
-                if (!ctx.fouille.effectuee) return { status: 'na', detail: 'Aucune fouille documentée.' };
-                if (!(ctx.fouille.objets || []).length) {
-                    return { status: 'ok', detail: 'Fouille effectuée sans saisie : aucun inventaire de scellés requis.' };
+                var n = ctx.fouille.nature || '';
+                var saisies = ctx.fouille.objets || [];
+                if (!ctx.fouille.effectuee && !n) return { status: 'na', detail: 'Aucun contrôle documenté.' };
+                if (n === 'Aucune palpation ni fouille') return { status: 'na', detail: 'Aucun contrôle documenté.' };
+                if (!saisies.length) {
+                    return { status: 'ok', detail: 'Contrôle effectué sans saisie : aucun inventaire de scellés requis.' };
                 }
+                // L'inventaire détaillé (4-1-5) et les scellés (4-1-6) sont
+                // attachés à la fouille. Une palpation qui met au jour un objet
+                // dangereux aboutit tout de même à une saisie, placée sous
+                // scellés au titre du régime général des preuves (7-3-1).
+                var base = /[Ff]ouille/.test(n)
+                    ? "Les Art. 4-1-5 et 4-1-6 imposent un inventaire détaillé et une mise sous scellés."
+                    : "La saisie issue d'une palpation relève du régime général des scellés (Art. 7-3-1).";
                 return {
                     status: 'warn',
-                    detail: (ctx.fouille.objets || []).length + ' élément(s) saisi(s) documenté(s). Le code impose un inventaire détaillé et une mise sous scellés.',
+                    detail: saisies.length + ' élément(s) saisi(s) documenté(s). ' + base,
                     fix: "Mentionnez explicitement l'établissement de l'inventaire et le placement sous scellés des éléments saisis."
                 };
             }

@@ -138,16 +138,27 @@ La précompilation n'est pas un choix de confort : la CSP de la page est
 des `.md` serait bloqué par le navigateur. Un `<script src>` passe par
 `script-src 'self'`, sans toucher à la CSP.
 
-### Banc de test
+### Bancs de test
 
 ```bash
-node tools/test-scenarios.js          # 38 assertions
+node tools/test-scenarios.js          # 46 assertions — checklist & défense
 node tools/test-scenarios.js --print  # + un exemple de fiche de défense
+node tools/test-reference-report.js   # fidélité au modèle de rapport du DOJ
+node tools/test-reference-report.js --print   # + le rapport généré
 ```
 
-Trois scénarios : interpellation simple, poursuite avec collision, usage d'arme avec
-blessure et avocat. Ils vérifient que la checklist s'adapte au contexte, qu'un
-rapport incomplet est refusé, et que la fiche de défense cite les bons articles.
+`test-scenarios.js` couvre trois scénarios — interpellation simple, poursuite avec
+collision, usage d'arme avec blessure et avocat — et vérifie que la checklist
+s'adapte au contexte, qu'un rapport incomplet est refusé, et que la fiche de défense
+cite les bons articles.
+
+`test-reference-report.js` pilote l'application dans Chrome headless, saisit les
+données du rapport de référence du DOJ et contrôle que le texte produit conserve
+**la structure du modèle** (8 paragraphes, mêmes temps forts dans le même ordre) et
+n'omet **aucune** des 29 informations qu'il contient. Le rapport généré peut être
+plus riche que le modèle — il porte des mentions que le code exige et que le modèle
+n'a pas (justification de l'usage de la force au titre des Art. 121 et 123,
+résultats de fouille au titre de l'Art. 2-2-7) — mais jamais plus pauvre.
 
 ## Lancement
 

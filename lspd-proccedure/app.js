@@ -1269,6 +1269,14 @@
         return `${fn} ${ln}`.trim();
     }
 
+    // « Monsieur Mosley Zayron » — le rapport désigne le mis en cause par sa
+    // civilité, pas par son seul état civil.
+    function lspdSuspectCivilName(suspect) {
+        const full = lspdSuspectFullName(suspect);
+        if (!full) return '';
+        return `${suspect.gender === 'Féminin' ? 'Madame' : 'Monsieur'} ${full}`;
+    }
+
     // Récupère les véhicules du module Patrouille au format ligne unique.
     // Pour les modules sans formulaire véhicule (GND/CID), retourne « Non communiqué. ».
     function lspdFormatVehiclePatrol() {
@@ -1360,10 +1368,36 @@
         if (parts.length === 1) return parts[0];
         return parts.slice(0, -1).join(', ') + ' et ' + parts[parts.length - 1];
     }
-    // Phrase d'ouverture OBLIGATOIRE — présent, 1re personne du pluriel
-    // (« nous répondons »), exception voulue conservée dans tous les modules.
-    function lspdBuildIntro(date, time, agents, motif) {
-        return `Le ${date} à ${time} lors d'une patrouille composée ${lspdPatrolComposition(agents)} nous répondons à un appel pour ${motif || 'une intervention'}.`;
+    // Phrase d'ouverture OBLIGATOIRE, commune à tous les modules.
+    // Rédigée à la 3e personne et à l'imparfait, comme le modèle de rapport
+    // du DOJ : l'unité « effectuait » une patrouille « lorsqu'elle a constaté ».
+    // La formulation dépend de l'origine de l'intervention, car constater une
+    // infraction soi-même et répondre à un appel ne se racontent pas pareil.
+    const ORIGINE_AMORCE = {
+        'Constatation directe en patrouille': "effectuait une patrouille de routine",
+        'Appel du dispatch': "a été requise par le dispatch",
+        "Renfort d'une autre unité": "s'est portée en renfort d'une unité déjà engagée",
+        'Contrôle programmé': "procédait à un contrôle programmé"
+    };
+
+    function lspdBuildIntro(date, time, agents, motif, opts) {
+        const o = opts || {};
+        const composition = lspdPatrolComposition(agents);
+        const origine = o.origine || 'Constatation directe en patrouille';
+        const amorce = ORIGINE_AMORCE[origine] || ORIGINE_AMORCE['Constatation directe en patrouille'];
+        const constat = (o.constatation || '').trim();
+
+        let s = `Le ${date}, aux alentours de ${time}, l'unité composée ${composition} ${amorce}`;
+
+        if (origine === 'Appel du dispatch' || origine === "Renfort d'une autre unité") {
+            s += ` pour ${motif || 'une intervention'}.`;
+            if (constat) s += ` Sur place, elle a constaté ${constat}.`;
+            return s;
+        }
+        s += constat
+            ? ` lorsqu'elle a constaté ${constat}.`
+            : ` lorsqu'elle a été amenée à intervenir pour ${motif || 'une intervention'}.`;
+        return s;
     }
     // Seconde patrouille agissant en parallèle (composition + action différentes).
     function lspdSecondPatrolSentence(agents, action) {
@@ -1377,18 +1411,24 @@
         h += `Lieu des faits : ${d.location || 'NEANT'}\n`;
         h += `Heure d'interpellation : ${d.arrestTime || 'NEANT'}\n`;
         h += `Procureur en charge : ${d.prosecutor || 'NEANT'}\n`;
-        h += 'Corps du rapport :\n\n';
+        h += (d.titreCorps || 'Corps du rapport :') + '\n\n';
         return h;
     }
 
     function lspdBuildReportBlock(opts) {
         const header = lspdBuildReportHeader({
             date: opts.date, time: opts.time, location: opts.location,
-            arrestTime: opts.arrestTime, prosecutor: opts.prosecutor
+            arrestTime: opts.arrestTime, prosecutor: opts.prosecutor,
+            titreCorps: opts.titreCorps
         });
         // Ouverture : phrase obligatoire commune à tous les modules.
-        const intro = lspdBuildIntro(opts.date, opts.time, opts.agents || [], opts.motif);
-        let body = `${intro} ${opts.narrative}`.trim();
+        const intro = lspdBuildIntro(opts.date, opts.time, opts.agents || [], opts.motif, {
+            origine: opts.origine,
+            constatation: opts.constatation
+        });
+        // L'ouverture est un paragraphe à part entière : le récit qui suit
+        // est lui-même découpé en paragraphes, un par temps fort.
+        let body = [intro, opts.narrative].filter(t => t && t.trim()).join('\n\n').trim();
         if (opts.vehicleStr && opts.vehicleStr !== 'Non communiqué.') {
             body += `\n\nVéhicule impliqué : ${opts.vehicleStr.replace(/\.\s*$/, '')}.`;
         }
@@ -1609,111 +1649,262 @@
         return sent.join(' ');
     }
 
+    // Moyens de contrainte → groupe nominal utilisable dans une phrase.
+    // Les libellés de tags sont écrits du point de vue de l'interface
+    // (« Les agents ont riposté par arme à feu ») et ne peuvent pas être
+    // recopiés tels quels dans le récit sans répéter le sujet.
+    const FORCE_PROSE = {
+        'Injonctions verbales effectuées': 'injonctions verbales',
+        'Maîtrise physique / Plaquage au sol': 'une maîtrise physique par plaquage au sol',
+        'Déploiement de gaz OC par les agents': 'gaz lacrymogène de type OC',
+        'Déploiement du Taser par les agents': "un pistolet à impulsion électrique",
+        'Usage du bâton télescopique par les agents': 'un bâton télescopique de défense',
+        "Déploiement de l'unité K-9": "l'appui de l'unité cynophile",
+        'Les agents ont riposté par arme à feu (tirs de riposte)': 'leur arme de service, en riposte aux tirs essuyés',
+        'Tir de neutralisation ciblé par les agents': 'un tir de neutralisation ciblé',
+        'Tir de sommation effectué par les agents': 'un tir de sommation',
+        "Déploiement d'arme lourde demandé": "une arme d'appui, dont le déploiement a été sollicité",
+        'Déploiement de beanbag demandé': 'un lanceur de balles souples'
+    };
+
+    // Issue de la poursuite → phrase de conclusion du paragraphe.
+    const ISSUE_POURSUITE_PROSE = {
+        'Collision du véhicule suspect avec le véhicule de service':
+            "Le conducteur n'a pas été en mesure d'éviter l'obstacle et est entré en collision avec le véhicule de service, ce qui a provoqué l'immobilisation définitive de son véhicule.",
+        'Immobilisation sans collision':
+            "Le véhicule suspect a pu être immobilisé sans qu'aucun choc ne survienne.",
+        'Sortie de route du véhicule suspect':
+            "Le véhicule suspect a quitté la chaussée et s'est immobilisé hors de la voie de circulation.",
+        'Abandon du véhicule et fuite à pied':
+            "Le conducteur a abandonné son véhicule et poursuivi sa fuite à pied.",
+        'Arrêt volontaire du conducteur':
+            "Le conducteur a fini par obtempérer et immobiliser volontairement son véhicule."
+    };
+
+    const VERIF_PLAQUE_PROSE = {
+        "Effectuée — véhicule appartenant à l'intéressé":
+            "il s'est avéré que le véhicule appartenait bien à l'intéressé",
+        "Effectuée — véhicule n'appartenant pas à l'intéressé":
+            "il s'est avéré que le véhicule n'appartenait pas à l'intéressé",
+        'Effectuée — véhicule signalé volé':
+            "il s'est avéré que le véhicule faisait l'objet d'un signalement pour vol"
+    };
+
+    const VERIF_CASIER_PROSE = {
+        'Effectuée — aucun antécédent': "n'a fait apparaître aucun antécédent",
+        'Effectuée — antécédents relevés': 'a fait apparaître des antécédents judiciaires',
+        "Effectuée — mandat d'arrêt actif": "a révélé l'existence d'un mandat d'arrêt actif"
+    };
+
+    // Récit de patrouille — rédigé en PARAGRAPHES, un par temps fort de
+    // l'intervention, dans l'ordre chronologique réel :
+    //
+    //   1. poursuite engagée et renfort      5. usage de la force
+    //   2. fin de poursuite et interception   6. prise en charge médicale
+    //   3. interpellation et identification   7. notification des droits
+    //   4. vérifications et constatations     8. fouille puis transport
+    //
+    // L'ouverture (constatation initiale) est portée en amont par
+    // lspdBuildIntro, appelée depuis lspdBuildReportBlock.
     function lspdBuildPatrolNarrative(suspect, locationLabel) {
-        const tenCodes = state.patrol.tenCodes || [];
-        const sentences = [];
-        // L'ouverture (« nous répondons à un appel pour… ») est portée par la
-        // phrase obligatoire (lspdBuildIntro), insérée en amont par
-        // lspdBuildReportBlock. Le récit démarre donc à l'arrivée sur les lieux.
-        for (let i = 1; i < tenCodes.length; i++) {
-            const transKey = `${tenCodes[i - 1]}->${tenCodes[i]}`;
-            const trans = DB.transitionPhrases[transKey];
-            if (trans) sentences.push(`Par la suite, ${trans}.`);
-            else {
-                const desc = DB.tenCodes[tenCodes[i]];
-                sentences.push(desc
-                    ? `La situation a ensuite évolué : ${desc.charAt(0).toLowerCase() + desc.slice(1)}.`
-                    : `La situation a ensuite évolué.`);
-            }
-        }
+        const tags = state.patrol.tags;
+        const cf = k => complianceGet('patrol', k);
+        const paras = [];
+        const push = (arr) => { const t = arr.filter(Boolean).join(' ').trim(); if (t) paras.push(t); };
 
-        sentences.push(`À notre arrivée sur les lieux, nous avons procédé aux constatations d'usage et sécurisé la zone.`);
-
-        const suspName = suspect ? lspdSuspectFullName(suspect) : '';
         const suspRef = (suspect && suspect.lastname)
             ? `${suspect.gender === 'Féminin' ? 'Madame' : 'Monsieur'} ${lspdTitleCase(suspect.lastname)}`
             : "l'individu mis en cause";
-        if (suspName) sentences.push(`Le mis en cause a été identifié comme étant ${suspName}.`);
+        const suspName = suspect ? lspdSuspectCivilName(suspect) : '';
 
-        const obs = state.patrol.tags.suspect_obs || [];
-        if (obs.length) sentences.push(`Nous avons constaté chez ${suspRef} les éléments suivants : ${obs.join(', ').toLowerCase()}.`);
-
-        const behavior = state.patrol.tags.behavior || [];
-        if (behavior.length) sentences.push(`Le comportement adopté par ${suspRef} a été le suivant : ${behavior.join(', ').toLowerCase()}.`);
-
-        const aggressor = state.patrol.tags.aggressor || [];
-        const aggressionOrigin = state.patrol.tags.aggression_origin || [];
-        if (aggressor.length) {
-            let s = aggressor.join('. ').toLowerCase();
-            if (aggressionOrigin.length) s += ` (${aggressionOrigin.join(', ')})`;
-            sentences.push(`${s.charAt(0).toUpperCase() + s.slice(1)}.`);
+        // Usage de la force : rapporté dans le paragraphe d'interpellation,
+        // comme le modèle. La justification exigée par les Art. 121 et 123
+        // reste consignée, elle n'a simplement pas de paragraphe propre.
+        function forceLines(ref) {
+            const force = tags.force || [];
+            if (!force.length) return [];
+            const lines = [];
+            const moyens = force.map(t => FORCE_PROSE[t] || t.toLowerCase());
+            lines.push(`Afin de maîtriser ${ref}, les agents ont fait usage ${deElide(lspdJoinFr(moyens))}.`);
+            const justif = cf('justificationForce');
+            if (justif) lines.push(`Cet usage a été rendu nécessaire par ${justif}.`);
+            const sommation = cf('sommation');
+            if (sommation.indexOf('Oui') === 0) lines.push('Un avertissement clair avait été adressé au préalable.');
+            else if (sommation.indexOf('circonstances') !== -1) lines.push("Les circonstances n'ont pas permis d'adresser un avertissement préalable.");
+            const suspState = tags.suspect_state || [];
+            if (suspState.length) lines.push(`L'état final constaté est le suivant : ${suspState[suspState.length - 1].toLowerCase()}.`);
+            const agState = (tags.agent_state || []).filter(x => x !== 'Aucun agent blessé');
+            if (agState.length) lines.push(`Côté agents du LSPD : ${agState.join(', ').toLowerCase()}.`);
+            return lines;
         }
 
-        const flight = state.patrol.tags.suspect_flight || [];
-        flight.forEach(f => sentences.push(`${f.replace(/\.$/, '')}.`));
-
-        const force = state.patrol.tags.force || [];
-        if (force.length) sentences.push(`Nous avons mis en œuvre les mesures suivantes : ${force.join(', ').toLowerCase()}.`);
-
-        const suspState = state.patrol.tags.suspect_state || [];
-        if (suspState.length) {
-            const last = suspState[suspState.length - 1];
-            sentences.push(`L'état final constaté du suspect : ${last.toLowerCase()}.`);
-        }
-
-        const agState = (state.patrol.tags.agent_state || []).filter(s => s !== 'Aucun agent blessé');
-        if (agState.length) sentences.push(`Côté agents LSPD : ${agState.join(', ').toLowerCase()}.`);
-
-        const sp = state.patrol.tags.search_person || [];
-        const sv = state.patrol.tags.search_vehicle || [];
-        if (sp.length || sv.length) {
-            sentences.push(`Une fouille a été effectuée sur les bases suivantes : ${[...sp, ...sv].join(', ').toLowerCase()}.`);
-        }
-
-        const miranda = state.patrol.tags.miranda || [];
-        const hDroits = complianceGet('patrol', 'heureDroits');
-        if (miranda.includes('Droits Miranda lus et compris')) {
-            sentences.push(hDroits
-                ? `Ses droits ont été notifiés à ${suspRef} à ${fmtH(hDroits)}, lequel a déclaré les avoir compris.`
-                : `Les avertissements Miranda ont été lus et compris par ${suspRef}.`);
-        }
-        if (miranda.includes('Demande un avocat')) sentences.push(`${suspRef} a demandé un avocat pendant son arrestation.`);
-        if (miranda.includes('Invoque le droit au silence')) sentences.push(`${suspRef} a invoqué son droit au silence.`);
-        if (miranda.includes('Passe aux aveux spontanés')) sentences.push(`${suspRef} est passé aux aveux spontanés.`);
-
-        const med = state.patrol.tags.medical_end || [];
-        if (med.length) sentences.push(`Conclusion médicale et procédurale : ${med.join(', ').toLowerCase()}.`);
-
-        const natureBlessure = complianceGet('patrol', 'natureBlessure');
-        const etab = complianceGet('patrol', 'etablissement');
-        const hEvac = complianceGet('patrol', 'heureEvacuation');
-        const hSortie = complianceGet('patrol', 'heureSortieMedicale');
-        if (natureBlessure || hEvac) {
-            let s = natureBlessure ? `Présentant ${withArticle(natureBlessure)}, ${suspRef}` : `${suspRef}`;
-            s += ' a été pris en charge par les services du LSFD et évacué vers ';
-            s += etab ? `le ${etab}` : 'le centre hospitalier';
-            s += hEvac ? ` à ${fmtH(hEvac)}.` : '.';
-            if (hSortie) {
-                s += ` Sa sortie a été prononcée à ${fmtH(hSortie)},`
-                    + " après autorisation expresse du corps médical de l'établissement.";
+        // Fouille : rattachée au paragraphe des droits, l'Art. 4-1-4 imposant
+        // que ceux-ci soient énoncés préalablement.
+        let fouilleRendue = false;
+        function fouilleLines() {
+            const sp = tags.search_person || [];
+            const sv = tags.search_vehicle || [];
+            if (!sp.length && !sv.length) return [];
+            const lines = [`Une fouille a été effectuée sur les bases suivantes : ${[...sp, ...sv].join(', ').toLowerCase()}.`];
+            const evidence = state.patrol.evidence || [];
+            if (evidence.length) {
+                lines.push(`Elle a permis la saisie des éléments suivants : ${evidence.join(', ').toLowerCase()}.`);
+                lines.push("L'ensemble a fait l'objet d'un inventaire détaillé et d'une mise sous scellés.");
             }
-            sentences.push(s);
+            return lines;
         }
 
-        const hTransport = complianceGet('patrol', 'heureTransport');
-        const destTransport = complianceGet('patrol', 'destinationTransport');
-        if (hTransport || destTransport) {
-            sentences.push(`${suspRef} a ensuite été transporté${destTransport ? ` vers ${destinationPhrase(destTransport)}` : ''}`
-                + `${hTransport ? ` à ${fmtH(hTransport)}` : ''} afin d'y poursuivre la procédure.`);
+        // ─── 1. Poursuite engagée, renfort sollicité ───
+        const flight = tags.suspect_flight || [];
+        const pursuit = flight.length > 0 || (tags.pursuit_end || []).length > 0
+            || (state.patrol.tenCodes || []).some(c => c === '10-56' || c === '10-55');
+        const renfort = cf('uniteRenfort');
+
+        if (pursuit) {
+            const p = ["L'unité a immédiatement entrepris de prendre le véhicule en chasse et a sollicité du renfort par radio."];
+            if (renfort) p.push(`L'unité composée ${renfort} s'est jointe à la poursuite.`);
+            flight.forEach(f => p.push(`${f.replace(/\.$/, '')}.`));
+            push(p);
+        } else if (renfort) {
+            push([`L'unité composée ${renfort} est intervenue en appui sur les lieux.`]);
+        }
+
+        // ─── 2. Fin de poursuite : lieu, manœuvre, issue ───
+        const secteur = cf('secteur');
+        const lieuFin = cf('lieuFinPoursuite');
+        const manoeuvre = cf('manoeuvreInterception');
+        const issue = cf('issuePoursuite');
+
+        if (pursuit && (secteur || lieuFin || manoeuvre || issue)) {
+            const p = [];
+            if (secteur || lieuFin) {
+                let s = 'Celle-ci a pris fin';
+                if (secteur) s += ` dans le secteur de ${secteur}`;
+                if (lieuFin) s += `, à hauteur de ${lieuFin}`;
+                p.push(s + '.');
+            }
+            if (manoeuvre) {
+                p.push(`${manoeuvre.charAt(0).toUpperCase() + manoeuvre.slice(1).replace(/\.$/, '')} afin de bloquer la progression du véhicule suspect.`);
+            }
+            p.push(ISSUE_POURSUITE_PROSE[issue] || '');
+            push(p);
+        } else if (!pursuit && secteur) {
+            push([`Les faits se sont déroulés dans le secteur de ${secteur}.`]);
+        }
+
+        // ─── 3. Interpellation et identification ───
+        {
+            const p = [];
+            p.push(pursuit
+                ? 'Les occupants ont aussitôt été interpellés par les unités présentes sur place.'
+                : "L'individu a été interpellé sur place par les unités présentes.");
+            if (suspName) {
+                p.push(pursuit
+                    ? `${suspName} a été identifié comme étant le conducteur du véhicule.`
+                    : `Le mis en cause a été identifié comme étant ${suspName}.`);
+            }
+            const obs = tags.suspect_obs || [];
+            if (obs.length) p.push(`Il a été constaté chez ${suspRef} les éléments suivants : ${obs.join(', ').toLowerCase()}.`);
+            const behavior = tags.behavior || [];
+            if (behavior.length) p.push(`Le comportement adopté par ${suspRef} a été le suivant : ${behavior.join(', ').toLowerCase()}.`);
+            const aggressor = tags.aggressor || [];
+            const origin = tags.aggression_origin || [];
+            if (aggressor.length) {
+                let s = aggressor.join('. ').toLowerCase();
+                if (origin.length) s += ` (${origin.join(', ')})`;
+                p.push(`${s.charAt(0).toUpperCase() + s.slice(1)}.`);
+            }
+            p.push.apply(p, forceLines(suspRef));
+            push(p);
+        }
+
+        // ─── 4. Vérifications ───
+        {
+            const p = [];
+            const plaque = cf('verifPlaque');
+            if (plaque && plaque.indexOf('Non effectuée') === -1) {
+                p.push(`Après vérification effectuée sur la plaque d'immatriculation, ${VERIF_PLAQUE_PROSE[plaque] || 'les éléments recueillis ont été versés à la procédure'}.`);
+            }
+            const casier = cf('verifCasier');
+            if (casier && casier.indexOf('Non effectuée') === -1) {
+                p.push(`La consultation du casier judiciaire ${VERIF_CASIER_PROSE[casier] || "n'a rien révélé de particulier"}.`);
+            }
+            const tests = tags.tests || [];
+            if (tests.length) p.push(`Les dépistages réalisés ont donné les résultats suivants : ${tests.join(', ').toLowerCase()}.`);
+            push(p);
+        }
+
+        // ─── 6. Prise en charge médicale ───
+        {
+            const nature = cf('natureBlessure');
+            const etab = cf('etablissement');
+            const hEvac = cf('heureEvacuation');
+            const hSortie = cf('heureSortieMedicale');
+            if (nature || hEvac || etab) {
+                const p = [];
+                let s = nature ? `Présentant ${withArticle(nature)}, ${suspRef}` : suspRef;
+                s += ' a été pris en charge par les services du LSFD et évacué vers ';
+                s += etab ? `le ${etab}` : 'le centre hospitalier';
+                s += hEvac ? ` à ${fmtH(hEvac)}.` : '.';
+                p.push(s);
+                if (hSortie) {
+                    p.push(`Sa sortie a été prononcée à ${fmtH(hSortie)}, après autorisation expresse du corps médical de l'établissement.`);
+                }
+                const med = (tags.medical_end || []).filter(m => !/transport centre hospitalier/i.test(m));
+                if (med.length) p.push(`Conclusion médicale : ${med.join(', ').toLowerCase()}.`);
+                push(p);
+            } else {
+                const med = tags.medical_end || [];
+                if (med.length) push([`Conclusion médicale et procédurale : ${med.join(', ').toLowerCase()}.`]);
+            }
+        }
+
+        // ─── 7. Notification des droits ───
+        {
+            const miranda = tags.miranda || [];
+            const hDroits = cf('heureDroits');
+            const reaction = cf('reactionDroits');
+            const evacue = !!cf('heureEvacuation');
+            if (miranda.length || hDroits) {
+                const p = [];
+                if (evacue) p.push("Les agents se sont alors rendus sur place afin de reprendre en charge l'individu.");
+                if (hDroits) p.push(`Ses droits lui ont été notifiés à ${fmtH(hDroits)}.`);
+                else if (miranda.includes('Droits Miranda lus et compris')) p.push(`Les avertissements Miranda ont été lus à ${suspRef}.`);
+
+                if (reaction) {
+                    p.push(`${suspName || suspRef} ${reaction.charAt(0).toLowerCase() + reaction.slice(1)}.`);
+                } else {
+                    if (miranda.includes('Droits Miranda lus et compris')) p.push(`${suspRef} a déclaré les avoir compris.`);
+                    if (miranda.includes('Demande un avocat')) p.push(`${suspRef} a expressément sollicité l'assistance d'un avocat.`);
+                }
+                if (miranda.includes('Invoque le droit au silence')) p.push(`${suspRef} a invoqué son droit au silence.`);
+                if (miranda.includes('Passe aux aveux spontanés')) p.push(`${suspRef} est passé aux aveux spontanés.`);
+                p.push.apply(p, fouilleLines());
+                push(p);
+                fouilleRendue = true;
+            }
+        }
+
+        // ─── 8. Fouille (si elle n'a pas suivi la notification des droits) ───
+        if (!fouilleRendue) push(fouilleLines());
+        {
+            const hTransport = cf('heureTransport');
+            const dest = cf('destinationTransport');
+            if (hTransport || dest) {
+                let s = `L'intéressé a ensuite été transporté`;
+                if (dest) s += ` vers ${destinationPhrase(dest)}`;
+                if (hTransport) s += ` à ${fmtH(hTransport)}`;
+                push([s + " afin d'y poursuivre la procédure."]);
+            }
         }
 
         const opsProse = lspdBuildOpsModulesProse();
-        if (opsProse) sentences.push(opsProse);
+        if (opsProse) push([opsProse]);
 
         const notes = $('#patrolNotes') ? $('#patrolNotes').value.trim() : '';
-        if (notes) sentences.push(notes.replace(/\s*\n+\s*/g, ' '));
+        if (notes) push([notes.replace(/\s*\n+\s*/g, ' ')]);
 
-        return sentences.join(' ');
+        return paras.join('\n\n');
     }
 
     function lspdBuildNarcNarrative(suspect, locationLabel, opType) {
@@ -2919,6 +3110,10 @@
         const arrestTime = ($('#patrolArrestTime') && $('#patrolArrestTime').value.trim()) || 'NEANT';
         const prosecutor = ($('#patrolProsecutor') && $('#patrolProsecutor').value.trim()) || 'NEANT';
 
+        const origine = complianceGet('patrol', 'origineIntervention');
+        const constatation = complianceGet('patrol', 'constatationInitiale');
+        const titreCorps = "RÉSUMÉ DES FAITS ET DE L'ARRESTATION";
+
         const allSuspects = getSuspectsData('patrolSuspectCards');
         const realSuspects = allSuspects.filter(s => (s.role || 'Suspect') === 'Suspect');
         const { bySuspect } = lspdCollectInfractions('patrolPenalInfractions', realSuspects.length);
@@ -2931,7 +3126,7 @@
             const narrative = lspdBuildPatrolNarrative(null, location);
             return lspdBuildReportBlock({
                 date, time, location, arrestTime, prosecutor, agents, motif,
-                narrative, vehicleStr,
+                narrative, vehicleStr, origine, constatation, titreCorps,
                 infractions: bySuspect[0] || []
             }) + trailer;
         }
@@ -2941,7 +3136,7 @@
             const narrative = lspdBuildPatrolNarrative(suspect, location);
             return lspdBuildReportBlock({
                 date, time, location, arrestTime, prosecutor, agents, motif,
-                narrative, vehicleStr,
+                narrative, vehicleStr, origine, constatation, titreCorps,
                 infractions: bySuspect[idx] || []
             });
         });
@@ -3011,7 +3206,7 @@
             const narrative = lspdBuildNarcNarrative(suspect, location, opType);
             return lspdBuildReportBlock({
                 date, time, location, arrestTime, prosecutor, agents, motif,
-                narrative, vehicleStr,
+                narrative, vehicleStr, origine, constatation, titreCorps,
                 infractions: bySuspect[idx] || []
             });
         });
@@ -5219,6 +5414,8 @@
             agents: [], motif: '', denouement: '',
             suspect: { nom: '', prenom: '', dob: '', sexe: '' },
             hasVehicle: false, verifPlaque: '', verifCasier: '',
+            origineIntervention: '', constatationInitiale: '',
+            uniteRenfort: '', manoeuvreInterception: '', issuePoursuite: '',
             pursuit: false, heureFinPoursuite: '', lieuFinPoursuite: '',
             collision: false, cuffed: false,
             force: { used: false, weapon: false, moyens: [], justification: '', sommation: '', menace: '' },
@@ -5257,6 +5454,11 @@
 
     function applyComplianceValues(ctx, moduleKey) {
         const v = k => complianceGet(moduleKey, k);
+        ctx.origineIntervention = v('origineIntervention');
+        ctx.constatationInitiale = v('constatationInitiale');
+        ctx.uniteRenfort = v('uniteRenfort');
+        ctx.manoeuvreInterception = v('manoeuvreInterception');
+        ctx.issuePoursuite = v('issuePoursuite');
         ctx.secteur = v('secteur');
         ctx.heureFinPoursuite = v('heureFinPoursuite');
         ctx.lieuFinPoursuite = v('lieuFinPoursuite');

@@ -199,6 +199,52 @@
     // et la clé de lecture dans le contexte.
     // ═══════════════════════════════════════════════════════════════════
     var COMPLIANCE_FIELDS = [
+        // ─── Déroulé : ce qui donne au récit son niveau de détail ───
+        {
+            key: 'origineIntervention', group: 'Déroulé de l\'intervention', type: 'select',
+            label: 'Origine de l\'intervention',
+            options: [
+                '',
+                'Constatation directe en patrouille',
+                'Appel du dispatch',
+                'Renfort d\'une autre unité',
+                'Contrôle programmé'
+            ],
+            when: function () { return true; }
+        },
+        {
+            key: 'constatationInitiale', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Ce qui a été constaté',
+            placeholder: 'Ex : la présence d\'un véhicule circulant à une vitesse manifestement excessive',
+            hint: 'Décrit les faits observés, pas leur qualification.',
+            when: function () { return true; }
+        },
+        {
+            key: 'uniteRenfort', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Composition de l\'unité de renfort',
+            placeholder: 'Ex : du Detective Jae Seung KIM et du Police Officer II Ignacio MENDES',
+            when: function (ctx) { return ctx.pursuit || ctx.force.used; }
+        },
+        {
+            key: 'manoeuvreInterception', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Manœuvre d\'interception — auteur et modalité',
+            placeholder: 'Ex : le Detective KIM a positionné son véhicule de service en travers de la voie',
+            when: function (ctx) { return ctx.pursuit; }
+        },
+        {
+            key: 'issuePoursuite', group: 'Déroulé de l\'intervention', type: 'select',
+            label: 'Issue de la poursuite',
+            options: [
+                '',
+                'Collision du véhicule suspect avec le véhicule de service',
+                'Immobilisation sans collision',
+                'Sortie de route du véhicule suspect',
+                'Abandon du véhicule et fuite à pied',
+                'Arrêt volontaire du conducteur'
+            ],
+            when: function (ctx) { return ctx.pursuit; }
+        },
+
         // ─── Repères de lieu ───
         {
             key: 'secteur', group: 'Lieu & chronologie', type: 'text',
@@ -315,7 +361,7 @@
             options: [
                 '',
                 'A déclaré les avoir compris',
-                'A déclaré les avoir compris et a sollicité l\'assistance d\'un avocat',
+                'A déclaré les avoir compris et a expressément sollicité l\'assistance d\'un avocat',
                 'A déclaré les avoir compris et a invoqué son droit au silence',
                 'N\'a pas été en mesure de les comprendre (inconscient / incohérent)',
                 'A refusé de répondre'
@@ -417,7 +463,10 @@
         {
             id: 'motif_initial', label: 'Motif initial du contrôle ou de l\'interpellation', weight: 1,
             when: always,
-            test: function (ctx) { return !!ctx.motif && ctx.motif !== 'une intervention'; },
+            test: function (ctx) {
+                return !!ctx.constatationInitiale
+                    || (!!ctx.motif && ctx.motif !== 'une intervention');
+            },
             probe: 'Quel était le motif initial ? Qu\'avez-vous constaté qui a déclenché l\'intervention ?',
             field: 'motif', articles: ['proc:2-2-1', 'proc:2-2-2']
         },

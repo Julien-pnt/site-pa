@@ -208,7 +208,11 @@
                                 <label>Individu — Prénom</label>
                                 <input type="text" id="rfSuspectFirst" placeholder="Ex : Marcus">
                             </div>
-                            <div class="form-group full-width">
+                            <div class="form-group">
+                                <label>Individu — Date de naissance</label>
+                                <input type="text" id="rfSuspectDob" placeholder="JJ/MM/AAAA">
+                            </div>
+                            <div class="form-group">
                                 <label>Procureur en charge</label>
                                 <input type="text" id="rfProsecutor" placeholder="Ex : Me Harding">
                             </div>
@@ -219,6 +223,12 @@
                         <h3>Blocs de procédure</h3>
                         <p class="roster-help">Cliquez pour activer un bloc. Les blocs cochés s'assemblent dans l'ordre chronologique dans l'aperçu.</p>
                         <div class="rf-blocks" id="rfBlocks"></div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Chronologie &amp; conformité</h3>
+                        <p class="roster-help">Les horodatages et justifications exigés par le code. Les champs n'apparaissent que lorsqu'ils s'appliquent à votre intervention.</p>
+                        <div class="compliance-fields" id="rfComplianceFields"></div>
                     </div>
 
                     <div class="form-section">
@@ -259,13 +269,17 @@
 
                 <!-- Colonne aperçu -->
                 <div class="rf-col rf-col-preview">
+                    <div class="completeness" id="rfCompleteness"></div>
+                    <div class="probes" id="rfProbes"></div>
                     <div class="rf-preview-wrap">
                         <div class="rf-preview-head">
                             <span class="rf-preview-title">Aperçu du rapport</span>
                             <span class="rf-dirty-note" id="rfDirtyNote" hidden>✎ édité manuellement</span>
                             <div class="rf-preview-actions">
                                 <button class="btn btn-outline btn-sm" id="rfRegen" title="Régénérer depuis les blocs (efface les éditions manuelles)">↻ Régénérer</button>
-                                <button class="btn btn-gold btn-sm" id="rfCopy">⧉ Copier</button>
+                                <button class="btn btn-outline btn-sm" id="rfCopy">⧉ Copier</button>
+                                <button class="btn btn-gold btn-sm" id="rfValidate">✓ Valider</button>
+                                <button class="btn btn-outline btn-sm btn-defense" id="rfDefense" disabled title="Validez le rapport pour préparer la défense">⚖ Défense</button>
                             </div>
                         </div>
                         <textarea class="rf-preview" id="rf-preview" spellcheck="false" aria-label="Aperçu du rapport, éditable"></textarea>
@@ -290,8 +304,9 @@
                     <li data-step="2"><span class="step-num">2</span><span class="step-label">Personnes</span></li>
                     <li data-step="3"><span class="step-num">3</span><span class="step-label">Véhicule</span></li>
                     <li data-step="4"><span class="step-num">4</span><span class="step-label">Déroulement</span></li>
-                    <li data-step="5"><span class="step-num">5</span><span class="step-label">Charges</span></li>
-                    <li data-step="6"><span class="step-num">6</span><span class="step-label">Rapport</span></li>
+                    <li data-step="5"><span class="step-num">5</span><span class="step-label">Conformité</span></li>
+                    <li data-step="6"><span class="step-num">6</span><span class="step-label">Charges</span></li>
+                    <li data-step="7"><span class="step-num">7</span><span class="step-label">Rapport</span></li>
                 </ol>
             </aside>
 
@@ -624,9 +639,16 @@
                     </div>
                 </div>
             </div>
-            <!-- Charges & Amendes -->
+            <!-- Chronologie & conformité légale -->
             <div class="form-section" data-step="5">
-                <h3>5 · Charges &amp; amendes</h3>
+                <h3>5 · Chronologie &amp; conformité</h3>
+                <p class="roster-help">Les horodatages et justifications exigés par le code. Les champs n'apparaissent que lorsqu'ils s'appliquent à votre intervention.</p>
+                <div class="compliance-fields" id="patrolComplianceFields"></div>
+            </div>
+
+            <!-- Charges & Amendes -->
+            <div class="form-section" data-step="6">
+                <h3>6 · Charges &amp; amendes</h3>
                 <p class="roster-help">Cochez les infractions à inclure dans le rapport.</p>
                 <div class="penal-search-bar">
                     <span class="penal-search-icon">⌕</span>
@@ -660,10 +682,13 @@
             </div>
 
             <!-- Generated Report -->
-            <div class="form-section" data-step="6">
-                <h3>6 · Rapport généré</h3>
+            <div class="form-section" data-step="7">
+                <h3>7 · Rapport généré</h3>
+                <div class="completeness" id="patrolCompleteness"></div>
+                <div class="probes" id="patrolProbes"></div>
                 <div class="generate-row">
                     <button class="btn btn-gold btn-lg" id="btnGeneratePatrol">★ GÉNÉRER LE RAPPORT</button>
+                    <button class="btn btn-outline btn-defense" id="patrolDefense" disabled title="Générez le rapport pour préparer la défense">⚖ Préparer la défense</button>
                     <label class="ai-mode-label" title="Améliorer automatiquement avec Claude AI après génération">
                         <input type="checkbox" class="ai-mode-check" id="patrolAiMode">
                         <span class="ai-mode-indicator">✦ Avec IA auto</span>
@@ -1330,7 +1355,34 @@
         </div>
     </div>
 
+    <!-- ═══════ MODAL: PRÉPARATION À LA DÉFENSE ═══════ -->
+    <div class="modal-overlay" id="defenseModal">
+        <div class="modal defense-modal">
+            <div class="defense-header">
+                <div>
+                    <h3>⚖ Préparation à l'audience</h3>
+                    <span class="defense-sub" id="defenseSub"></span>
+                </div>
+                <button class="qa-remove" id="btnDefenseClose" title="Fermer">&times;</button>
+            </div>
+            <div class="defense-body" id="defenseBody"></div>
+            <div class="defense-footer">
+                <span class="defense-note">Document interne de préparation — ne pas verser au dossier.</span>
+                <div class="defense-actions">
+                    <button class="btn btn-outline btn-sm" id="btnDefenseExport">⤓ Exporter</button>
+                    <button class="btn btn-gold btn-sm" id="btnDefenseCopy">⧉ Copier</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="vendor/leaflet/leaflet.js"></script>
+    <!-- Socle légal : legal-data.js est GÉNÉRÉ depuis legal/*.md par
+         `node tools/build-legal.js`. Il est chargé par <script> et non par
+         fetch(), la CSP n'autorisant pas les requêtes same-origin. -->
+    <script src="legal-data.js"></script>
+    <script src="legal-rules.js"></script>
+    <script src="defense.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

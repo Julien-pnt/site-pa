@@ -12,52 +12,61 @@
 | Module | Description |
 |--------|-------------|
 | **Dashboard** | Statistiques de session, gestion du roster, référence rapide des codes radio (intervention + procéduraux) |
-| **Rapport de Patrouille** | Narrative builder avec 10-codes, tags (arrivée, action, riposte, conclusion), sliders tactiques, identification suspect + véhicule, calculateur pénal intégré |
+| **Rapport Rapide** | Blocs de procédure pré-rédigés, chronologie horodatée, contrôle de complétude bloquant et préparation à la défense |
+| **Rapport de Patrouille** | Narrative builder avec 10-codes, tags (arrivée, action, riposte, conclusion), sliders tactiques, identification suspect + véhicule, calculateur pénal, contrôle de complétude bloquant et préparation à la défense |
 | **GND — Stupéfiants** | Saisie de drogue, conditionnement, affiliation gang, armes saisies, calculateur pénal intégré |
 | **CID — Crimes Majeurs** | Scène de crime, balistique, empreintes, mandats judiciaires |
 | **Interrogatoire** | Procès-verbal avec blocs Q/R dynamiques |
 | **Code Pénal** | Calculateur de peines avec fiche de charges auto-générée |
 
-### Entretien guidé (étape 4 du Rapport de Patrouille)
+### Complétude & conformité légale (Rapport Rapide + Rapport de Patrouille)
 
-L'étape « Déroulement » n'est **pas** un mur de tags : c'est un **entretien**. L'agent
-choisit un scénario, puis répond à une suite de questions ordonnées **à réponses toutes
-faites**, affichées **inline** (aucune pop-up, aucun tiroir). Chaque réponse alimente une
-**phrase précise du récit** — le rapport final est un texte fluide, pas une énumération.
+Les deux modules d'arrestation sont adossés aux deux codes de `legal/` : un rapport
+incomplet **n'est pas validable**, et chaque exigence est rattachée à son article.
 
-Un **aperçu du récit se met à jour en direct** sous les questions, et une barre de
-progression indique les questions restantes. Les questions conditionnelles n'apparaissent
-que si elles ont du sens (ex. « Quelle unité en renfort ? » seulement si un incident a
-affecté l'unité).
+Une section « Chronologie & conformité » est rendue **à l'identique** dans les deux
+modules depuis une spec unique (`COMPLIANCE_FIELDS`). Les champs n'apparaissent que
+lorsqu'ils s'appliquent : pas de blessé, pas de champ médical.
 
-| # | Scénario | Questions |
-|---|----------|-----------|
-| 1 | Refus d'obtempérer & course-poursuite | 14 |
-| 2 | Accident & dommages collatéraux | 11 |
-| 3 | Fusillade & violences armées | 10 |
-| 4 | Braquage & prise d'otages | 12 |
-| 5 | Stupéfiants, contrebande & perquisition | 8 |
-| 6 | Violences domestiques & personnes vulnérables | 7 |
-| 7 | Scène de décès / DOA | 10 |
-| 8 | Incident spécial | 9 |
+| | Rapport Rapide | Rapport de Patrouille |
+|---|---|---|
+| Point de montage | section de la colonne saisie | étape 5 du rail de progression |
+| Source du contexte | blocs `RAPPORT_BLOCKS` + champs `#rf*` | `state.patrol.tags` + fiches personnes + véhicule |
+| Blocage | bouton « ✓ Valider » | avant l'ouverture du récap de génération |
 
-Les questions et rédacteurs de récit vivent dans **`interview.js`** (données pures, aucun
-DOM) ; le rendu et le câblage sont dans `app.js`. Ajouter un scénario = ajouter une entrée
-dans `SCEN` avec ses `questions` et sa fonction `narrate(answers, ctx)`.
+**La règle de validation est double**, et les deux conditions sont cumulatives :
 
-Le moteur gère les **contractions françaises** (`de` + voyelle → `d'`, `à` + `le` → `au`,
-`que` + voyelle → `qu'`) et l'**exclusivité** des réponses « aucun » (impossible de cocher
-« Aucun blessé » *et* « Blessés légers »).
+1. la complétude atteint **90 %** des éléments applicables ;
+2. **aucun élément critique** ne manque.
 
-**Exemple de sortie** (refus d'obtempérer) :
+La seconde n'est pas redondante : sur un dossier lourd (plus de vingt items
+applicables), deux omissions laissent encore le score au-dessus de 90 % alors qu'il
+peut manquer, par exemple, l'heure de sortie médicale exigée par l'Art. 2-4-4. Les
+éléments critiques sont l'énumération de l'**Art. 2-2-7** (date, identité, date de
+naissance, heure d'arrestation, résultats de fouille, charges) et les obligations
+conditionnelles (Art. 123, 2-4-1, 2-4-2, 2-4-4, 5-3-1). Ils ne se compensent pas.
 
-> Mon unité, composée du Sgt I LANGFORD Ryker et de l'agent IGNACIO Mendes, a été affectée
-> par le dispatch à un appel signalant une attaque sur un ATM au niveau du Kortz Center.
->
-> Nous avons immédiatement pris la route, gyrophares et sirène enclenchés. Une fois sur
-> place, nous avons constaté qu'un véhicule Chavos V6 de couleur bleue descendait à vive
-> allure. Nous avons donc effectué un demi-tour afin de procéder à l'interpellation du
-> conducteur. […]
+Chaque élément manquant produit une **relance** : la question posée à l'agent,
+l'article qui la fonde, et un bouton qui l'amène directement au champ concerné.
+
+### Préparer la défense
+
+Une fois le rapport validé, le bouton **⚖ Défense** produit une fiche de préparation
+à l'audience RP, au format `question probable → article → ce que le rapport y répond
+→ à défaut, ce qu'il faut ajouter` :
+
+1. **Délais** — arithmétique réelle sur les heures saisies (flagrance 20 min,
+   présentation au procureur 30/45/60 min selon la gravité, surveillance médicale
+   1 h, recours à l'avocat), chacun confronté à son plafond légal ;
+2. **Qualification des charges** — chaque charge rattachée à son article, les charges
+   non qualifiées signalées ;
+3. **Points d'attaque** groupés par phase (contrôle initial → poursuite → usage de la
+   force → interpellation → fouille & scellés → droits & avocat → médical → suites) ;
+4. **À corriger avant de se présenter**.
+
+Les points d'attaque propres à une qualification sont couverts : l'Art. 431-7 exige
+une sommation claire, l'Art. 607 se distingue des Art. 605/606 par l'absence de
+preuve radar, une charge d'arme suppose une arme saisie et placée sous scellés.
 
 ### Recherche
 
@@ -100,15 +109,45 @@ manuelles et aux réponses de l'IA — aucun code radio ne peut subsister dans l
 ## Structure
 
 ```
-index.html       — Structure SPA (6 modules + sidebar + modals)
-style.css        — Thème complet + couche d'identité LSPD, responsive 900px
-interview.js     — Entretien guidé : 8 scénarios (questions + rédacteurs de récit)
-app.js           — Logique applicative (DB, state, moteur narratif, exports)
-vendor/leaflet/  — Leaflet auto-hébergé (js, css, images)
+index.html        — Structure SPA (6 modules + sidebar + modals)
+style.css         — Thème complet + couche d'identité LSPD, responsive 900px
+legal/            — CODE PÉNAL.md + Code de procédure (sources de vérité)
+legal-data.js     — GÉNÉRÉ depuis legal/ par tools/build-legal.js
+legal-rules.js    — Checklist, règles de délai, table infraction → article
+defense.js        — Construction de la fiche de préparation à l'audience
+app.js            — Logique applicative (DB, state, moteur narratif, exports)
+tools/            — build-legal.js (compilation) + test-scenarios.js (banc de test)
+vendor/leaflet/   — Leaflet auto-hébergé (js, css, images)
 ```
 
-> `interview.js` est chargé **avant** `app.js` et expose `window.LSPD_IV`
-> (`SCEN`, `visibleQuestions`, `progress`, `narrate`). Il ne touche jamais au DOM.
+> `legal-data.js`, `legal-rules.js` et `defense.js` sont chargés **avant** `app.js`
+> et exposent `window.LSPD_LEGAL`, `window.LSPD_RULES` et `window.LSPD_DEFENSE`.
+> Ce sont des données et fonctions pures : ils ne touchent jamais au DOM.
+
+### Régénérer les données légales
+
+`legal-data.js` est **généré** — ne pas l'éditer à la main. Après toute modification
+des `.md` de `legal/` :
+
+```bash
+node tools/build-legal.js
+```
+
+La précompilation n'est pas un choix de confort : la CSP de la page est
+`connect-src https://*.workers.dev` (sans `'self'`), donc un `fetch()` same-origin
+des `.md` serait bloqué par le navigateur. Un `<script src>` passe par
+`script-src 'self'`, sans toucher à la CSP.
+
+### Banc de test
+
+```bash
+node tools/test-scenarios.js          # 38 assertions
+node tools/test-scenarios.js --print  # + un exemple de fiche de défense
+```
+
+Trois scénarios : interpellation simple, poursuite avec collision, usage d'arme avec
+blessure et avocat. Ils vérifient que la checklist s'adapte au contexte, qu'un
+rapport incomplet est refusé, et que la fiche de défense cite les bons articles.
 
 ## Lancement
 

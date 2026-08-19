@@ -1390,7 +1390,7 @@
         const intro = lspdBuildIntro(opts.date, opts.time, opts.agents || [], opts.motif);
         let body = `${intro} ${opts.narrative}`.trim();
         if (opts.vehicleStr && opts.vehicleStr !== 'Non communiqué.') {
-            body += `\n\nVéhicule impliqué : ${opts.vehicleStr}.`;
+            body += `\n\nVéhicule impliqué : ${opts.vehicleStr.replace(/\.\s*$/, '')}.`;
         }
         if (opts.infractions && opts.infractions.length) {
             body += `\n\nCharges retenues :\n${lspdFormatInfractionsList(opts.infractions)}\n\nAmende totale : ${lspdTotalFine(opts.infractions)}$`;
@@ -1671,8 +1671,11 @@
         }
 
         const miranda = state.patrol.tags.miranda || [];
+        const hDroits = complianceGet('patrol', 'heureDroits');
         if (miranda.includes('Droits Miranda lus et compris')) {
-            sentences.push(`Les avertissements Miranda ont été lus et compris par ${suspRef}.`);
+            sentences.push(hDroits
+                ? `Ses droits ont été notifiés à ${suspRef} à ${fmtH(hDroits)}, lequel a déclaré les avoir compris.`
+                : `Les avertissements Miranda ont été lus et compris par ${suspRef}.`);
         }
         if (miranda.includes('Demande un avocat')) sentences.push(`${suspRef} a demandé un avocat pendant son arrestation.`);
         if (miranda.includes('Invoque le droit au silence')) sentences.push(`${suspRef} a invoqué son droit au silence.`);
@@ -1680,6 +1683,29 @@
 
         const med = state.patrol.tags.medical_end || [];
         if (med.length) sentences.push(`Conclusion médicale et procédurale : ${med.join(', ').toLowerCase()}.`);
+
+        const natureBlessure = complianceGet('patrol', 'natureBlessure');
+        const etab = complianceGet('patrol', 'etablissement');
+        const hEvac = complianceGet('patrol', 'heureEvacuation');
+        const hSortie = complianceGet('patrol', 'heureSortieMedicale');
+        if (natureBlessure || hEvac) {
+            let s = natureBlessure ? `Présentant ${withArticle(natureBlessure)}, ${suspRef}` : `${suspRef}`;
+            s += ' a été pris en charge par les services du LSFD et évacué vers ';
+            s += etab ? `le ${etab}` : 'le centre hospitalier';
+            s += hEvac ? ` à ${fmtH(hEvac)}.` : '.';
+            if (hSortie) {
+                s += ` Sa sortie a été prononcée à ${fmtH(hSortie)},`
+                    + " après autorisation expresse du corps médical de l'établissement.";
+            }
+            sentences.push(s);
+        }
+
+        const hTransport = complianceGet('patrol', 'heureTransport');
+        const destTransport = complianceGet('patrol', 'destinationTransport');
+        if (hTransport || destTransport) {
+            sentences.push(`${suspRef} a ensuite été transporté${destTransport ? ` vers ${destinationPhrase(destTransport)}` : ''}`
+                + `${hTransport ? ` à ${fmtH(hTransport)}` : ''} afin d'y poursuivre la procédure.`);
+        }
 
         const opsProse = lspdBuildOpsModulesProse();
         if (opsProse) sentences.push(opsProse);
@@ -2897,6 +2923,9 @@
         const realSuspects = allSuspects.filter(s => (s.role || 'Suspect') === 'Suspect');
         const { bySuspect } = lspdCollectInfractions('patrolPenalInfractions', realSuspects.length);
 
+        // Chronologie / médical / avocat : une seule fois en fin de rapport.
+        const trailer = RULES ? complianceTrailer(buildCtx('patrol')) : '';
+
         // Si aucun suspect identifié → un seul bloc "Non communiqué."
         if (realSuspects.length === 0) {
             const narrative = lspdBuildPatrolNarrative(null, location);
@@ -2904,7 +2933,7 @@
                 date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr,
                 infractions: bySuspect[0] || []
-            });
+            }) + trailer;
         }
 
         // Un bloc par suspect, séparés par ───────────
@@ -2916,7 +2945,7 @@
                 infractions: bySuspect[idx] || []
             });
         });
-        return lspdJoinBlocks(blocks);
+        return lspdJoinBlocks(blocks) + trailer;
     }
 
 
@@ -3794,8 +3823,9 @@
                 return !!(v.model || v.plate || (v.color && v.color.length) || (v.state && v.state.length));
             })(),
             4: Object.values(state.patrol.tags).some(arr => Array.isArray(arr) && arr.length > 0),
-            5: $$('#patrolPenalInfractions input[type="checkbox"]:checked').length > 0,
-            6: !!($('#patrolReportOutput') && $('#patrolReportOutput').textContent.trim().length > 0)
+            5: $$('#patrolComplianceFields .cf-input').some(el => el.value.trim().length > 0),
+            6: $$('#patrolPenalInfractions input[type="checkbox"]:checked').length > 0,
+            7: !!($('#patrolReportOutput') && $('#patrolReportOutput').textContent.trim().length > 0)
         };
         // Determine current "active" step = first non-done
         let activeFound = false;
@@ -4236,6 +4266,9 @@
             }
             e.preventDefault();
             e.stopImmediatePropagation();
+            // Porte de complétude : un rapport incomplet n'atteint même pas
+            // le récap. validateReport() affiche les relances et refuse.
+            if (moduleKey === 'patrol' && !validateReport('patrol')) return;
             const count = lspdCountTags(moduleKey);
             lspdOpenRecap(moduleKey, count, () => {
                 btn.dataset.recapConfirmed = '1';
@@ -4570,6 +4603,27 @@
         return /^[aeiouyàâäéèêëîïôöûüh]/i.test(w[0]) ? `d'${w}` : `de ${w}`;
     }
 
+    // Les agents saisissent un groupe nominal nu (« plaie par balle au bras
+    // droit ») aussi bien qu'un groupe déjà déterminé (« des blessures au
+    // bras »). On ne préfixe un article que s'il en manque un.
+    const HAS_DETERMINER = /^(un|une|des|du|de|d'|le|la|les|l'|plusieurs|deux|trois|quatre|cinq|son|sa|ses|multiples)\b/i;
+
+    function withArticle(text) {
+        const t = String(text || '').trim();
+        if (!t) return '';
+        return HAS_DETERMINER.test(t) ? t : `une ${t}`;
+    }
+
+    // « poste de Mission Row » → « le poste de Mission Row », mais
+    // « Mission Row » reste tel quel : une initiale majuscule signale un nom
+    // propre, qui ne prend pas d'article.
+    function destinationPhrase(dest) {
+        const d = String(dest || '').trim();
+        if (!d) return '';
+        if (HAS_DETERMINER.test(d) || /^(au|aux|à)\b/i.test(d)) return d;
+        return /^[A-ZÀ-Þ]/.test(d) ? d : `le ${d}`;
+    }
+
     // Bibliothèque de blocs. Chaque bloc : { id, label, hint, fields, render }.
     // render(d, ctx) → paragraphe (string). d = valeurs des champs du bloc ;
     // ctx = { subject, subjectLower, plural, location, suspectName }.
@@ -4689,15 +4743,22 @@
             ],
             render: (d, ctx) => {
                 const map = {
-                    'verbale/contrainte physique légère': 'de la contrainte physique',
-                    'taser': "d'un pistolet à impulsion électrique (taser)",
-                    'arme à impact (bâton/matraque)': "d'un bâton de défense",
-                    'arme à feu': 'de son arme de service'
+                    'verbale/contrainte physique légère': () => 'de la contrainte physique',
+                    'taser': () => "d'un pistolet à impulsion électrique (taser)",
+                    'arme à impact (bâton/matraque)': () => "d'un bâton de défense",
+                    'arme à feu': () => ctx.plural ? 'de leur arme de service' : 'de son arme de service'
                 };
-                const moyen = map[d.type] || map['verbale/contrainte physique légère'];
+                const moyen = (map[d.type] || map['verbale/contrainte physique légère'])();
                 const verb = ctx.plural ? 'ont fait usage' : 'a fait usage';
+                const justif = d.justification || complianceGet('standard', 'justificationForce');
                 let s = `Afin de maîtriser le suspect, ${ctx.subjectLower} ${verb} ${moyen}.`;
-                if (d.justification) s += ` Cet usage a été rendu nécessaire par ${d.justification}.`;
+                if (justif) s += ` Cet usage a été rendu nécessaire par ${justif}.`;
+                const sommation = complianceGet('standard', 'sommation');
+                if (sommation.indexOf('Oui') === 0) {
+                    s += ' Un avertissement clair avait été adressé au préalable.';
+                } else if (sommation.indexOf('circonstances') !== -1) {
+                    s += " Les circonstances n'ont pas permis d'adresser un avertissement préalable.";
+                }
                 return s;
             }
         },
@@ -4754,10 +4815,18 @@
             ],
             render: (d) => {
                 const m = d.moment || "au moment de l'interpellation";
+                const heure = complianceGet('standard', 'heureDroits');
+                const quand = heure ? `à ${fmtH(heure)}` : m;
                 if (m.indexOf('inconscient') !== -1) {
-                    return "L'individu étant inconscient, ses avertissements Miranda n'ont pas pu lui être notifiés, celui-ci n'étant pas en mesure de les comprendre dans cet état. Ils lui ont été lus et compris une fois pris en charge et jugé apte par le personnel médical.";
+                    return "L'individu étant inconscient, ses avertissements Miranda n'ont pas pu lui être notifiés, celui-ci n'étant pas en mesure de les comprendre dans cet état. Ils lui ont été lus "
+                        + (heure ? `et compris ${quand}, ` : 'et compris ')
+                        + 'une fois pris en charge et jugé apte par le personnel médical.';
                 }
-                return `Les avertissements Miranda ont été notifiés à l'individu ${m}, lequel a déclaré les avoir compris.`;
+                const reaction = complianceGet('standard', 'reactionDroits');
+                const suite = reaction
+                    ? reaction.charAt(0).toLowerCase() + reaction.slice(1)
+                    : 'a déclaré les avoir compris';
+                return `Ses droits lui ont été notifiés ${quand}. L'individu ${suite}.`;
             }
         },
         {
@@ -4774,7 +4843,24 @@
             fields: [
                 { key: 'motif', type: 'text', label: 'Motif (optionnel)', placeholder: 'Ex : une plaie à la tête, un malaise…' }
             ],
-            render: (d) => `L'individu a été évacué vers le centre hospitalier afin d'y recevoir des soins${d.motif ? `, en raison ${deElide(d.motif)}` : ''}.`
+            // Reprend la forme de l'exemple de référence : nature de la
+            // blessure, établissement et heures d'évacuation puis de sortie.
+            render: (d) => {
+                const nature = complianceGet('standard', 'natureBlessure') || d.motif;
+                const etab = complianceGet('standard', 'etablissement');
+                const hEvac = complianceGet('standard', 'heureEvacuation');
+                const hSortie = complianceGet('standard', 'heureSortieMedicale');
+
+                let s = nature ? `Présentant ${withArticle(nature)}, l'individu` : "L'individu";
+                s += ' a été pris en charge par les services du LSFD et évacué vers ';
+                s += etab ? `le ${etab}` : 'le centre hospitalier';
+                s += hEvac ? ` à ${fmtH(hEvac)}.` : ' afin d\'y recevoir des soins.';
+                if (hSortie) {
+                    s += ` Sa sortie a été prononcée à ${fmtH(hSortie)},`
+                        + ' après autorisation expresse du corps médical de l\'établissement.';
+                }
+                return s;
+            }
         },
         {
             id: 'interpellation_differee',
@@ -4879,11 +4965,16 @@
             ? paras.join('\n\n')
             : '(Cochez des blocs de procédure pour composer le corps du rapport.)';
 
-        return sanitizeRadioCodes(header + body + rfChargesSection());
+        const trailer = RULES ? complianceTrailer(buildCtx('standard')) : '';
+        return sanitizeRadioCodes(header + body + trailer + rfChargesSection());
     }
 
     // Rebâtit l'aperçu, sauf si l'utilisateur l'a édité manuellement (dirty).
     function rfUpdatePreview() {
+        // Activer un bloc change les éléments exigés par la checklist :
+        // la conformité doit suivre immédiatement, sans attendre la
+        // temporisation du listener global.
+        if (typeof refreshCompliance === 'function') refreshCompliance('standard');
         const ta = $('#rf-preview');
         if (!ta) return;
         if (rfState.dirty) return;
@@ -5016,9 +5107,13 @@
     function rfReset() {
         RAPPORT_BLOCKS.forEach(b => { rfState.blocks[b.id] = { active: false, fields: {} }; });
         rfSetDirty(false);
-        ['rfLocation', 'rfArrestTime', 'rfProsecutor', 'rfSuspectLast', 'rfSuspectFirst', 'rfAiInput'].forEach(id => {
+        ['rfLocation', 'rfArrestTime', 'rfProsecutor', 'rfSuspectLast', 'rfSuspectFirst',
+            'rfSuspectDob', 'rfAiInput'].forEach(id => {
             const el = $('#' + id); if (el) el.value = '';
         });
+        complianceValues.standard = {};
+        complianceShape.standard = null;
+        validatedCtx.standard = null;
         state.selectedAgents.standard = [];
         if ($('#standardPenalInfractions')) {
             $$('#standardPenalInfractions input[type="checkbox"]').forEach(cb => {
@@ -5084,6 +5179,601 @@
 
         rfUpdatePreview();
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // COMPLÉTUDE & CONFORMITÉ LÉGALE
+    // Partagé par le Rapport Rapide (« standard ») et le Rapport de
+    // Patrouille (« patrol »). Une seule spec de champs, un adaptateur de
+    // contexte par module, un seul moteur d'évaluation.
+    // ═══════════════════════════════════════════════════════════════════
+
+    const RULES = window.LSPD_RULES;
+    const DEFENSE = window.LSPD_DEFENSE;
+
+    // Normalise « 2h5 » en « 02h05 ». Si le socle légal n'a pas été généré
+    // (tools/build-legal.js jamais lancé), on rend la saisie telle quelle
+    // plutôt que de casser la génération du rapport.
+    function fmtH(value) {
+        return RULES ? RULES.formatHeure(value) : String(value || '').trim();
+    }
+
+    const COMPLIANCE_PREFIX = { standard: 'rf', patrol: 'patrol' };
+    const complianceValues = { standard: {}, patrol: {} };
+    const complianceShape = { standard: null, patrol: null };
+    const validatedCtx = { standard: null, patrol: null };
+
+    function complianceGet(moduleKey, key) {
+        return String(complianceValues[moduleKey][key] || '').trim();
+    }
+
+    function complianceFieldDomId(moduleKey, key) {
+        return COMPLIANCE_PREFIX[moduleKey] + 'Cf_' + key;
+    }
+
+    // ─── Adaptateurs de contexte ───────────────────────────────────────
+
+    function emptyCtx(moduleKey) {
+        return {
+            module: moduleKey,
+            date: '', time: '', lieu: '', secteur: '',
+            agents: [], motif: '', denouement: '',
+            suspect: { nom: '', prenom: '', dob: '', sexe: '' },
+            hasVehicle: false, verifPlaque: '', verifCasier: '',
+            pursuit: false, heureFinPoursuite: '', lieuFinPoursuite: '',
+            collision: false, cuffed: false,
+            force: { used: false, weapon: false, moyens: [], justification: '', sommation: '', menace: '' },
+            injured: false, injuredByOfficer: false,
+            medical: { cause: '', nature: '', heureEvac: '', etablissement: '', heureSortie: '', rapport12h: '' },
+            miranda: { heure: '', reaction: '' },
+            lawyer: { requested: false, heureContact: '', heureArrivee: '' },
+            transport: { heure: '', destination: '' },
+            fouille: { effectuee: false, base: '', objets: [] },
+            charges: [], heureArrestation: '', heurePresentationProcureur: '',
+            chronoStamps: [], reportText: ''
+        };
+    }
+
+    // DB.penalCode nomme ses catégories au pluriel ; le code pénal et les
+    // règles de délai (Art. 2-2-8, 2-1-9) raisonnent au singulier.
+    const DB_CATEGORY_TO_GRAVITE = {
+        'Contraventions': 'Contravention',
+        'Délits Mineurs': 'Délit mineur',
+        'Délits Majeurs': 'Délit majeur',
+        'Crimes': 'Crime'
+    };
+
+    function chargesFor(penalContainerId) {
+        return $$(`#${penalContainerId} input[type="checkbox"]:checked`).map(cb => {
+            const cat = DB.penalCode[parseInt(cb.dataset.cat)];
+            const item = cat && cat.items[parseInt(cb.dataset.item)];
+            if (!item) return null;
+            return {
+                name: item.name,
+                categorie: DB_CATEGORY_TO_GRAVITE[cat.category] || '',
+                articles: RULES.articlesForCharge(item.name)
+            };
+        }).filter(Boolean);
+    }
+
+    function applyComplianceValues(ctx, moduleKey) {
+        const v = k => complianceGet(moduleKey, k);
+        ctx.secteur = v('secteur');
+        ctx.heureFinPoursuite = v('heureFinPoursuite');
+        ctx.lieuFinPoursuite = v('lieuFinPoursuite');
+        ctx.verifPlaque = v('verifPlaque');
+        ctx.verifCasier = v('verifCasier');
+        ctx.force.justification = v('justificationForce') || ctx.force.justification;
+        ctx.force.sommation = v('sommation');
+        ctx.force.menace = v('menaceInvoquee');
+        ctx.medical.cause = v('causeBlessure');
+        ctx.medical.nature = v('natureBlessure');
+        ctx.medical.heureEvac = v('heureEvacuation');
+        ctx.medical.etablissement = v('etablissement');
+        ctx.medical.heureSortie = v('heureSortieMedicale');
+        ctx.medical.rapport12h = v('rapportIncident12h');
+        ctx.miranda.heure = v('heureDroits');
+        ctx.miranda.reaction = v('reactionDroits') || ctx.miranda.reaction;
+        ctx.lawyer.heureContact = v('heureContactAvocat');
+        ctx.lawyer.heureArrivee = v('heureArriveeAvocat');
+        ctx.transport.heure = v('heureTransport');
+        ctx.transport.destination = v('destinationTransport');
+        ctx.heurePresentationProcureur = v('heurePresentationProcureur');
+
+        if (/avocat/i.test(ctx.miranda.reaction)) ctx.lawyer.requested = true;
+        if (ctx.medical.cause) ctx.injured = true;
+        ctx.injuredByOfficer = ctx.injured && ctx.medical.cause === 'Action directe des forces de l\'ordre';
+        return ctx;
+    }
+
+    function buildChronoStamps(ctx) {
+        const stamps = [];
+        const add = (label, h) => { if (RULES.parseHeure(h) !== null) stamps.push({ label, heure: h }); };
+        add('Faits', ctx.time);
+        add('Fin de poursuite', ctx.heureFinPoursuite);
+        add('Interpellation', ctx.heureArrestation);
+        add('Évacuation', ctx.medical.heureEvac);
+        add('Sortie médicale', ctx.medical.heureSortie);
+        add('Notification des droits', ctx.miranda.heure);
+        add('Contact avocat', ctx.lawyer.heureContact);
+        add('Transport', ctx.transport.heure);
+        add('Présentation au procureur', ctx.heurePresentationProcureur);
+        ctx.chronoStamps = stamps;
+        return ctx;
+    }
+
+    function buildStandardCtx() {
+        const ctx = emptyCtx('standard');
+        const blocks = rfState.blocks;
+        const on = id => !!(blocks[id] && blocks[id].active);
+        const fld = (id, key) => (blocks[id] && blocks[id].fields && blocks[id].fields[key]) || '';
+
+        const dtRaw = ($('#rfDatetime') && $('#rfDatetime').value) || '';
+        const dtObj = dtRaw ? new Date(dtRaw) : null;
+        if (dtObj) { ctx.date = lspdFormatDate(dtObj); ctx.time = lspdFormatTime(dtObj); }
+
+        ctx.lieu = ($('#rfLocation') && $('#rfLocation').value.trim()) || '';
+        ctx.agents = lspdSelectedRoster('standard');
+        ctx.motif = fld('intervention', 'motif');
+        ctx.suspect = {
+            nom: ($('#rfSuspectLast') && $('#rfSuspectLast').value.trim()) || '',
+            prenom: ($('#rfSuspectFirst') && $('#rfSuspectFirst').value.trim()) || '',
+            dob: ($('#rfSuspectDob') && $('#rfSuspectDob').value.trim()) || '',
+            sexe: ''
+        };
+        ctx.heureArrestation = ($('#rfArrestTime') && $('#rfArrestTime').value.trim()) || '';
+
+        ctx.pursuit = on('poursuite');
+        ctx.collision = on('accident') || fld('poursuite', 'issue') === 'accident survenu';
+        ctx.hasVehicle = ctx.collision || (ctx.pursuit && fld('poursuite', 'type') !== 'à pied');
+        ctx.cuffed = on('cloture') || on('usage_force');
+
+        ctx.force.used = on('usage_force');
+        ctx.force.weapon = fld('usage_force', 'type') === 'arme à feu';
+        ctx.force.moyens = ctx.force.used ? [fld('usage_force', 'type')].filter(Boolean) : [];
+        ctx.force.justification = fld('usage_force', 'justification');
+
+        ctx.injured = on('transport') || /bless/i.test(fld('securisation_secours', 'etat'));
+        ctx.miranda.reaction = on('miranda') ? fld('miranda', 'moment') : '';
+        ctx.lawyer.requested = on('avocat');
+
+        ctx.fouille.effectuee = on('fouille');
+        ctx.fouille.base = fld('fouille', 'base');
+        ctx.fouille.objets = fld('fouille', 'objets')
+            ? fld('fouille', 'objets').split(/\s*(?:,|;| et )\s*/).filter(Boolean) : [];
+
+        ctx.denouement = on('poursuite') || on('usage_force') || on('cloture')
+            || on('interpellation_differee') || on('pv');
+
+        ctx.charges = $('#standardPenalInfractions') ? chargesFor('standardPenalInfractions') : [];
+        return buildChronoStamps(applyComplianceValues(ctx, 'standard'));
+    }
+
+    const PATROL_WEAPON_TAGS = /riposté par arme à feu|tir de neutralisation|tir de sommation|arme lourde/i;
+    const PATROL_INJURY_TAGS = /blessure par balle|arme blanche|traumatisme|inconscient|décédé|état de choc/i;
+
+    function buildPatrolCtx() {
+        const ctx = emptyCtx('patrol');
+        const tags = state.patrol.tags;
+
+        const dtRaw = ($('#patrolDatetime') && $('#patrolDatetime').value) || '';
+        const dtObj = dtRaw ? new Date(dtRaw) : null;
+        if (dtObj) { ctx.date = lspdFormatDate(dtObj); ctx.time = lspdFormatTime(dtObj); }
+
+        ctx.lieu = ($('#patrolLocation') && $('#patrolLocation').value.trim()) || '';
+        ctx.agents = lspdSelectedRoster('patrol');
+        const motif = lspdPatrolMotif();
+        ctx.motif = motif === 'une intervention' ? '' : motif;
+        ctx.heureArrestation = ($('#patrolArrestTime') && $('#patrolArrestTime').value.trim()) || '';
+
+        const suspects = getSuspectsData('patrolSuspectCards')
+            .filter(s => (s.role || 'Suspect') === 'Suspect');
+        const first = suspects[0];
+        if (first) {
+            ctx.suspect = {
+                nom: first.lastname === 'Inconnu' ? '' : first.lastname,
+                prenom: first.firstname === 'Inconnu' ? '' : first.firstname,
+                dob: first.dob || '', sexe: first.gender || ''
+            };
+        }
+
+        const veh = getVehicleData();
+        ctx.hasVehicle = !!(veh.model || veh.plate || (veh.color || []).length);
+
+        const codes = state.patrol.tenCodes || [];
+        ctx.pursuit = (tags.suspect_flight || []).length > 0
+            || (tags.pursuit_end || []).length > 0
+            || codes.indexOf('10-56') !== -1 || codes.indexOf('10-55') !== -1;
+        ctx.collision = codes.indexOf('10-50') !== -1 || codes.indexOf('10-51') !== -1
+            || (state.patrol.vehicleState || []).indexOf('Accidenté') !== -1;
+
+        const force = tags.force || [];
+        ctx.force.used = force.length > 0;
+        ctx.force.weapon = force.some(t => PATROL_WEAPON_TAGS.test(t));
+        ctx.force.moyens = force;
+        ctx.cuffed = force.some(t => /maîtrise physique/i.test(t))
+            || (tags.search_person || []).some(t => /incidente à l/i.test(t));
+
+        const health = (first && first.health) || [];
+        const medEnd = tags.medical_end || [];
+        ctx.injured = health.some(h => PATROL_INJURY_TAGS.test(h))
+            || medEnd.some(m => /soins ems|transport centre hospitalier|maintenu en observation/i.test(m));
+
+        const miranda = tags.miranda || [];
+        if (miranda.indexOf('Droits Miranda lus et compris') !== -1) {
+            ctx.miranda.reaction = 'A déclaré les avoir compris';
+        }
+        ctx.lawyer.requested = miranda.indexOf('Demande un avocat') !== -1;
+
+        const searchTags = [...(tags.search_person || []), ...(tags.search_vehicle || [])];
+        ctx.fouille.effectuee = searchTags.length > 0;
+        ctx.fouille.base = searchTags.join(', ');
+        ctx.fouille.objets = (state.patrol.evidence || []).slice();
+
+        ctx.denouement = ctx.force.used || (tags.suspect_state || []).length > 0 || medEnd.length > 0;
+
+        ctx.charges = $('#patrolPenalInfractions') ? chargesFor('patrolPenalInfractions') : [];
+        return buildChronoStamps(applyComplianceValues(ctx, 'patrol'));
+    }
+
+    function buildCtx(moduleKey) {
+        return moduleKey === 'patrol' ? buildPatrolCtx() : buildStandardCtx();
+    }
+
+    // ─── Rendu des champs de conformité ────────────────────────────────
+
+    function buildComplianceInput(moduleKey, field) {
+        const domId = complianceFieldDomId(moduleKey, field.key);
+        const current = complianceGet(moduleKey, field.key);
+        let input;
+
+        if (field.type === 'select') {
+            input = document.createElement('select');
+            (field.options || []).forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt;
+                o.textContent = opt || '— Sélectionner —';
+                input.appendChild(o);
+            });
+            input.value = current;
+        } else {
+            input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = field.placeholder || (field.type === 'time' ? 'Ex : 02h15' : '');
+            input.value = current;
+            if (field.type === 'time') input.setAttribute('inputmode', 'numeric');
+        }
+
+        input.id = domId;
+        input.className = 'cf-input';
+        // Les heures et justifications alimentent aussi le corps du rapport
+        // (chronologie, médical, avocat) : l'aperçu doit se régénérer.
+        const sync = () => {
+            complianceValues[moduleKey][field.key] = input.value;
+            if (moduleKey === 'standard') rfUpdatePreview();
+            else refreshCompliance(moduleKey);
+        };
+        input.addEventListener('input', sync);
+        input.addEventListener('change', sync);
+        return input;
+    }
+
+    function renderComplianceFields(moduleKey, ctx) {
+        const wrap = $('#' + COMPLIANCE_PREFIX[moduleKey] + 'ComplianceFields');
+        if (!wrap) return;
+
+        const visible = RULES.COMPLIANCE_FIELDS.filter(f => {
+            try { return f.when(ctx); } catch (e) { return false; }
+        });
+        const shape = visible.map(f => f.key).join('|');
+        if (shape === complianceShape[moduleKey]) return;   // évite de voler le focus
+        complianceShape[moduleKey] = shape;
+
+        wrap.innerHTML = '';
+        let currentGroup = null;
+        let groupBody = null;
+
+        visible.forEach(field => {
+            if (field.group !== currentGroup) {
+                currentGroup = field.group;
+                const g = document.createElement('div');
+                g.className = 'cf-group';
+                const title = document.createElement('div');
+                title.className = 'cf-group-title';
+                title.textContent = currentGroup;
+                g.appendChild(title);
+                groupBody = document.createElement('div');
+                groupBody.className = 'cf-group-body';
+                g.appendChild(groupBody);
+                wrap.appendChild(g);
+            }
+            const row = document.createElement('div');
+            row.className = 'cf-field';
+            row.dataset.cfKey = field.key;
+
+            const lab = document.createElement('label');
+            lab.textContent = field.label;
+            lab.setAttribute('for', complianceFieldDomId(moduleKey, field.key));
+            row.appendChild(lab);
+            row.appendChild(buildComplianceInput(moduleKey, field));
+
+            if (field.hint) {
+                const hint = document.createElement('span');
+                hint.className = 'cf-hint';
+                hint.textContent = field.hint;
+                row.appendChild(hint);
+            }
+            groupBody.appendChild(row);
+        });
+    }
+
+    // ─── Barre de complétude ───────────────────────────────────────────
+
+    function renderCompleteness(moduleKey, ev) {
+        const el = $('#' + COMPLIANCE_PREFIX[moduleKey] + 'Completeness');
+        if (!el) return;
+        const done = ev.applicableCount - ev.missing.length;
+        const tone = ev.valid ? 'ok' : (ev.percent >= 70 ? 'warn' : 'bad');
+        const criticalNote = ev.criticalMissing.length
+            ? `<div class="cp-critical">⚠ ${ev.criticalMissing.length} élément(s) légalement obligatoire(s) manquant(s) — la validation reste bloquée même au-dessus de ${Math.round(ev.threshold * 100)} %.</div>`
+            : '';
+        el.innerHTML =
+            `<div class="cp-head">
+                <span class="cp-title">Complétude du rapport</span>
+                <span class="cp-score cp-${tone}">${ev.percent} %</span>
+             </div>
+             <div class="cp-bar"><div class="cp-fill cp-${tone}" style="width:${ev.percent}%"></div></div>
+             <div class="cp-sub">${done}/${ev.applicableCount} éléments applicables couverts · seuil ${Math.round(ev.threshold * 100)} %</div>
+             ${criticalNote}`;
+    }
+
+    // ─── Panneau de relance ────────────────────────────────────────────
+
+    const PROBE_TARGETS = {
+        standard: {
+            datetime: '#rfDatetime', roster: '#rfRoster', suspect: '#rfSuspectLast',
+            dob: '#rfSuspectDob', arrestTime: '#rfArrestTime', charges: '#standardPenalInfractions',
+            motif: '#rfBlocks', denouement: '#rfBlocks', fouille: '#rfBlocks'
+        },
+        patrol: {
+            datetime: '#patrolDatetime', roster: '#patrolRoster', suspect: '#patrolSuspectCards',
+            dob: '#patrolSuspectCards', arrestTime: '#patrolArrestTime',
+            charges: '#patrolPenalInfractions', motif: '#tenCodeSelector',
+            denouement: '#mod-patrol .tag-builder', fouille: '#patrolEvidence'
+        }
+    };
+
+    function probeTargetSelector(moduleKey, field) {
+        const map = PROBE_TARGETS[moduleKey] || {};
+        if (map[field]) return map[field];
+        return '#' + complianceFieldDomId(moduleKey, field);
+    }
+
+    function focusProbeTarget(moduleKey, field) {
+        const el = document.querySelector(probeTargetSelector(moduleKey, field));
+        if (!el) return;
+        const section = el.closest('.form-section');
+        if (section) section.classList.remove('fs-collapsed');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('probe-flash');
+        setTimeout(() => el.classList.remove('probe-flash'), 1600);
+        if (typeof el.focus === 'function' && /INPUT|SELECT|TEXTAREA/.test(el.tagName)) {
+            setTimeout(() => el.focus(), 250);
+        }
+    }
+
+    function renderProbes(moduleKey, ev) {
+        const el = $('#' + COMPLIANCE_PREFIX[moduleKey] + 'Probes');
+        if (!el) return;
+        if (!ev.missing.length) {
+            el.innerHTML = '<div class="probes-clear">✓ Tous les éléments requis sont renseignés.</div>';
+            return;
+        }
+        const cards = ev.missing.map(m => {
+            const refs = (m.articles || []).map(r => RULES.citation(r)).join(' · ');
+            return `<div class="probe${m.critical ? ' probe-critical' : ''}">
+                <div class="probe-q">${escapeHtml(m.probe)}</div>
+                ${refs ? `<div class="probe-art">${escapeHtml(refs)}</div>` : ''}
+                <button type="button" class="probe-go" data-field="${escapeHtml(m.field)}">→ Renseigner</button>
+            </div>`;
+        }).join('');
+        el.innerHTML =
+            `<div class="probes-head">${ev.missing.length} question(s) en attente</div>${cards}`;
+        el.querySelectorAll('.probe-go').forEach(btn => {
+            btn.addEventListener('click', () => focusProbeTarget(moduleKey, btn.dataset.field));
+        });
+    }
+
+    // ─── Orchestration ─────────────────────────────────────────────────
+
+    let complianceBusy = false;
+
+    function refreshCompliance(moduleKey) {
+        if (!RULES || complianceBusy) return null;
+        complianceBusy = true;
+        try {
+            const ctx = buildCtx(moduleKey);
+            const ev = RULES.evaluate(ctx);
+            renderComplianceFields(moduleKey, ctx);
+            renderCompleteness(moduleKey, ev);
+            renderProbes(moduleKey, ev);
+            updateDefenseButton(moduleKey, ev);
+            return { ctx, ev };
+        } finally {
+            complianceBusy = false;
+        }
+    }
+
+    function updateDefenseButton(moduleKey, ev) {
+        const btn = $('#' + COMPLIANCE_PREFIX[moduleKey] + 'Defense');
+        if (!btn) return;
+        const ready = !!validatedCtx[moduleKey] && ev.valid;
+        btn.disabled = !ready;
+        btn.title = ready
+            ? 'Générer la fiche de préparation à l\'audience'
+            : 'Validez le rapport pour préparer la défense';
+    }
+
+    // Refus explicite tant que la checklist n'est pas couverte.
+    function validateReport(moduleKey) {
+        const res = refreshCompliance(moduleKey);
+        if (!res) return false;
+        const { ctx, ev } = res;
+
+        if (!ev.valid) {
+            validatedCtx[moduleKey] = null;
+            updateDefenseButton(moduleKey, ev);
+            const reason = ev.criticalMissing.length
+                ? `${ev.criticalMissing.length} élément(s) légalement obligatoire(s) manquant(s)`
+                : `complétude ${ev.percent} % (seuil ${Math.round(ev.threshold * 100)} %)`;
+            showToast(`Rapport incomplet — ${reason}.`, 'error');
+            const probes = $('#' + COMPLIANCE_PREFIX[moduleKey] + 'Probes');
+            if (probes) probes.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        validatedCtx[moduleKey] = ctx;
+        updateDefenseButton(moduleKey, ev);
+        showToast(`Rapport validé — complétude ${ev.percent} %.`);
+        return true;
+    }
+
+    // ─── Sections de rapport issues de la conformité ───────────────────
+    // Reprend la présentation de l'exemple de référence : chronologie,
+    // prise en charge médicale et assistance d'un avocat en fin de rapport.
+
+    // Seule l'assistance d'un avocat est reprise en fin de rapport, sous la
+    // forme de l'exemple de référence. Les heures d'évacuation, de sortie
+    // médicale et de notification des droits sont portées par le récit
+    // lui-même : les redupliquer en liste alourdirait le rapport pour rien.
+    function complianceTrailer(ctx) {
+        if (!ctx.lawyer.requested) return '';
+        const H = RULES.formatHeure;
+        return '\n\n' + [
+            'Assistance d\'un Avocat :',
+            `* Heure de prise de contact : ${ctx.lawyer.heureContact ? H(ctx.lawyer.heureContact) : 'XXhXX'}`,
+            `* Heure d'arrivée : ${ctx.lawyer.heureArrivee || 'XXhXX'}`
+        ].join('\n');
+    }
+
+    // ─── Modale de défense ─────────────────────────────────────────────
+
+    const SEVERITY_LABEL = { fail: 'Bloquant', warn: 'À consolider', ok: 'Conforme', na: 'Sans objet' };
+    let defenseText = '';
+
+    function defenseDelaysHtml(doc) {
+        const rows = doc.delays.map(d => `
+            <tr class="dl-${d.statut.replace(/[^a-zà-ÿ]/gi, '').toLowerCase()}">
+                <td>${escapeHtml(d.label)}</td>
+                <td class="dl-num">${escapeHtml(d.mesure)}</td>
+                <td class="dl-num">${escapeHtml(d.limite)}</td>
+                <td class="dl-statut">${escapeHtml(d.statut)}</td>
+                <td class="dl-art">${escapeHtml(d.citation)}</td>
+            </tr>`).join('');
+        return `<table class="defense-table">
+            <thead><tr><th>Délai</th><th>Mesuré</th><th>Plafond</th><th>Statut</th><th>Fondement</th></tr></thead>
+            <tbody>${rows}</tbody></table>`;
+    }
+
+    function defenseChargesHtml(doc) {
+        if (!doc.charges.length) return '<p class="defense-empty">Aucune charge retenue.</p>';
+        return '<ul class="defense-charges">' + doc.charges.map(c => `
+            <li>
+                <span class="dc-name">${escapeHtml(c.name)}</span>
+                ${c.categorie ? `<span class="dc-cat">${escapeHtml(c.categorie)}</span>` : ''}
+                ${c.citations.length
+                    ? c.citations.map(ci => `<span class="dc-art">${escapeHtml(ci)}</span>`).join('')
+                    : '<span class="dc-art dc-missing">Aucun article identifié</span>'}
+            </li>`).join('') + '</ul>';
+    }
+
+    function defenseGroupsHtml(doc) {
+        return doc.groups.map(g => `
+            <div class="defense-phase">
+                <div class="defense-phase-title">${escapeHtml(g.phase)}</div>
+                ${g.items.map(it => `
+                    <div class="defense-item di-${it.severity}">
+                        <div class="di-head">
+                            <span class="di-badge">${escapeHtml(SEVERITY_LABEL[it.severity] || '')}</span>
+                            <span class="di-q">${escapeHtml(it.question)}</span>
+                        </div>
+                        ${(it.articles || []).map(r => `<div class="di-art">${escapeHtml(RULES.citation(r))}</div>`).join('')}
+                        ${it.reponse ? `<div class="di-line"><b>Le rapport :</b> ${escapeHtml(it.reponse)}</div>` : ''}
+                        ${it.manque ? `<div class="di-line di-gap"><b>Faiblesse :</b> ${escapeHtml(it.manque)}</div>` : ''}
+                        ${it.aFaire ? `<div class="di-line di-fix"><b>À ajouter :</b> ${escapeHtml(it.aFaire)}</div>` : ''}
+                    </div>`).join('')}
+            </div>`).join('');
+    }
+
+    function openDefenseModal(moduleKey) {
+        const ctx = validatedCtx[moduleKey];
+        if (!ctx) { showToast('Validez le rapport avant de préparer la défense.', 'error'); return; }
+
+        const ev = RULES.evaluate(ctx);
+        const doc = DEFENSE.buildDefenseDoc(ctx, ev);
+        defenseText = sanitizeRadioCodes(DEFENSE.renderText(doc));
+
+        const sub = $('#defenseSub');
+        if (sub) {
+            sub.textContent = `${doc.meta.suspect} · ${doc.meta.date} ${doc.meta.time} · `
+                + `${doc.counts.fail} bloquant(s), ${doc.counts.warn} à consolider`;
+        }
+
+        const body = $('#defenseBody');
+        if (body) {
+            body.innerHTML =
+                `<section><h4>1 · Respect des délais</h4>${defenseDelaysHtml(doc)}</section>
+                 <section><h4>2 · Qualification des charges</h4>${defenseChargesHtml(doc)}</section>
+                 <section><h4>3 · Points d'attaque anticipés</h4>${defenseGroupsHtml(doc)}</section>
+                 ${doc.todo.length ? `<section><h4>4 · À corriger avant de se présenter</h4>
+                    <ol class="defense-todo">${doc.todo.map(t => `<li>${escapeHtml(t.aFaire)}</li>`).join('')}</ol>
+                 </section>` : ''}`;
+            body.scrollTop = 0;
+        }
+        const modal = $('#defenseModal');
+        if (modal) modal.classList.add('active');
+    }
+
+    function initDefenseModal() {
+        const modal = $('#defenseModal');
+        if (!modal) return;
+        const close = () => modal.classList.remove('active');
+        $('#btnDefenseClose').addEventListener('click', close);
+        modal.addEventListener('click', e => { if (e.target === modal) close(); });
+        $('#btnDefenseCopy').addEventListener('click', () => copyToClipboard(defenseText));
+        $('#btnDefenseExport').addEventListener('click',
+            () => exportText(defenseText, 'preparation-audience'));
+    }
+
+    function initCompliance() {
+        if (!RULES || !DEFENSE) return;
+
+        // Temporisation locale : `debounce` appartient au second IIFE du
+        // fichier et n'est pas visible depuis cette portée.
+        const throttled = (fn, ms) => {
+            let t = null;
+            return () => { clearTimeout(t); t = setTimeout(fn, ms); };
+        };
+
+        ['standard', 'patrol'].forEach(moduleKey => {
+            const root = $('#mod-' + moduleKey);
+            if (!root) return;
+            const refresh = throttled(() => refreshCompliance(moduleKey), 120);
+            ['input', 'change', 'click'].forEach(ev => root.addEventListener(ev, refresh, true));
+            refreshCompliance(moduleKey);
+        });
+
+        const rfValidateBtn = $('#rfValidate');
+        if (rfValidateBtn) rfValidateBtn.addEventListener('click', () => validateReport('standard'));
+
+        const rfDefenseBtn = $('#rfDefense');
+        if (rfDefenseBtn) rfDefenseBtn.addEventListener('click', () => openDefenseModal('standard'));
+
+        const patrolDefenseBtn = $('#patrolDefense');
+        if (patrolDefenseBtn) patrolDefenseBtn.addEventListener('click', () => openDefenseModal('patrol'));
+
+        initDefenseModal();
+    }
+
 
     function init() {
         // Load saved roster
@@ -5217,6 +5907,9 @@
 
         // Mode standard à blocs (parcours par défaut)
         rfInit();
+
+        // Complétude, relances et préparation de la défense (standard + patrouille)
+        initCompliance();
     }
 
     // ═══════════════════════════════════════════════════════════════════

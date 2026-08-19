@@ -55,3 +55,16 @@ yarn-error.log*
 *.p12
 *.pfx
 secrets.*
+
+# ---- Sources légales & socle généré — NE JAMAIS COMMITTER ----
+# Les deux codes de l'État de San Andreas sont des documents de référence RP
+# externes : ils restent locaux et ne sont pas redistribués par le dépôt.
+lspd-proccedure/legal/
+
+# legal-data.js est GÉNÉRÉ depuis legal/*.md par `node tools/build-legal.js`.
+# Le committer reviendrait à publier les codes sous une autre forme, en plus
+# d'être un artefact de build. Chaque poste le régénère localement.
+lspd-proccedure/legal-data.js
+
+# Copie de test sans CSP produite par le banc de test navigateur.
+lspd-proccedure/_test-harness.html

@@ -71,4 +71,4 @@ lspd-proccedure/_test-harness.html
 
 # Rapports d'arrestation réels servant d'exemples de rédaction : ils portent
 # des identités et des faits de partie. Ils restent locaux, comme les codes.
-lspd-proccedure/docs/exemples-rapports.md
+lspd-proccedure/docs/*.md

@@ -359,9 +359,305 @@
         return L.join('\n');
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // AUDITION FID / IAD — préparation à partir du rapport d'incident
+    //
+    // Même principe que la fiche destinée au procureur, mais l'interlocuteur
+    // change et les questions avec lui. Le FID n'instruit pas la culpabilité
+    // du suspect : il vérifie que l'usage de l'arme entrait dans les cinq cas
+    // de l'Art. 123, que la procédure interne a été suivie (bodycam remise,
+    // arme saisie, scène non touchée), et que le récit de l'officier tient
+    // face aux éléments matériels qu'il ne maîtrise pas.
+    // ═══════════════════════════════════════════════════════════════════
+
+    // Points de procédure interne, sans article de loi : ils viennent du
+    // règlement du département, rappelé en pied du gabarit OIS.
+    var PROCEDURE_INTERNE = {
+        bodycam: 'Procédure interne LSPD — remise immédiate de la bodycam au superviseur sur place',
+        arme: "Procédure interne LSPD — arme de service saisie par le FID/IAD pour expertise balistique",
+        scene: "Procédure interne LSPD — l'officier impliqué ne touche à aucun autre élément de la scène",
+        preuves: "Procédure interne LSPD — collecte des preuves réservée aux enquêteurs FID/IAD"
+    };
+
+    function iadPoint(phase, question, opts) {
+        var o = opts || {};
+        return {
+            phase: phase,
+            question: question,
+            articles: o.articles || [],
+            reference: o.reference || '',
+            reponse: o.reponse || '',
+            manque: o.manque || '',
+            aFaire: o.aFaire || '',
+            severity: o.severity || 'ok'
+        };
+    }
+
+    function buildIadDoc(ctx, evaluation) {
+        var points = [];
+        var manquant = function (id) {
+            return (evaluation.missing || []).some(function (m) { return m.id === id; });
+        };
+
+        // ─── Fondement légal du tir ───
+        points.push(ctx.circonstances.sommations === 'Oui'
+            ? iadPoint("Fondement légal du tir",
+                "Avez-vous adressé une sommation avant de faire feu, et laquelle ?",
+                {
+                    articles: ['penal:123'],
+                    reponse: "Le rapport indique que des sommations ont été effectuées.",
+                    aFaire: "Tenez-vous prêt à restituer les termes exacts employés et le délai laissé au suspect.",
+                    severity: 'ok'
+                })
+            : iadPoint("Fondement légal du tir",
+                "Aucune sommation n'est mentionnée : qu'est-ce qui vous en a empêché ?",
+                {
+                    articles: ['penal:123'],
+                    manque: ctx.circonstances.sommations
+                        ? "Le rapport indique qu'aucune sommation n'a été effectuée."
+                        : "Le rapport ne se prononce pas sur les sommations.",
+                    aFaire: "L'Art. 123 exige un avertissement clair lorsque les circonstances le permettent. "
+                        + "Décrivez précisément l'immédiateté de la menace qui l'a rendu impossible.",
+                    severity: 'fail'
+                }));
+
+        points.push(iadPoint("Fondement légal du tir",
+            "Sous lequel des cinq cas de l'article 123 rangez-vous votre tir ?",
+            {
+                articles: ['penal:123', 'penal:121'],
+                reponse: ctx.circonstances.recit
+                    ? "Le récit décrit la menace perçue au moment de la décision d'ouvrir le feu."
+                    : '',
+                manque: ctx.circonstances.recit ? '' : "Le récit des circonstances est absent ou trop succinct.",
+                aFaire: ctx.circonstances.recit
+                    ? "Rattachez explicitement votre récit à l'un des cinq cas : le FID vous demandera lequel."
+                    : "Sans récit circonstancié, l'usage de l'arme est présumé injustifié. Rédigez-le avant l'audition.",
+                severity: ctx.circonstances.recit ? 'warn' : 'fail'
+            }));
+
+        points.push(iadPoint("Fondement légal du tir",
+            "À quelle distance vous trouviez-vous, et dans quelle position ?",
+            {
+                articles: ['penal:123'],
+                reponse: (ctx.circonstances.distance || ctx.circonstances.position)
+                    ? 'Distance : ' + (ctx.circonstances.distance || '—')
+                        + ' m, position : ' + (ctx.circonstances.position || '—') + '.'
+                    : '',
+                manque: (ctx.circonstances.distance && ctx.circonstances.position) ? ''
+                    : "Distance ou position de l'officier non renseignée.",
+                aFaire: (ctx.circonstances.distance && ctx.circonstances.position) ? ''
+                    : "Ces deux éléments conditionnent l'appréciation de la proportionnalité : renseignez-les.",
+                severity: (ctx.circonstances.distance && ctx.circonstances.position) ? 'ok' : 'warn'
+            }));
+
+        // ─── Menace et riposte ───
+        points.push(iadPoint('Menace et riposte',
+            "Le suspect était-il armé, et a-t-il fait feu sur vous ?",
+            {
+                articles: ['penal:123'],
+                reponse: ctx.suspect.arme
+                    ? 'Armement du suspect consigné : ' + ctx.suspect.arme + '.'
+                        + (ctx.circonstances.riposte
+                            ? ' Riposte du suspect : ' + ctx.circonstances.riposte
+                                + (ctx.circonstances.riposteNb ? ' (' + ctx.circonstances.riposteNb + ' tir(s))' : '') + '.'
+                            : '')
+                    : '',
+                manque: ctx.suspect.arme ? '' : "L'armement du suspect n'est pas renseigné.",
+                aFaire: ctx.suspect.arme ? '' :
+                    "C'est l'élément central de la menace invoquée : renseignez-le, ou expliquez pourquoi il est inconnu.",
+                severity: ctx.suspect.arme ? 'ok' : 'fail'
+            }));
+
+        // ─── Munitions et arme de service ───
+        points.push(iadPoint('Arme de service et munitions',
+            "Combien de coups avez-vous tirés, et l'état de votre chargeur le confirme-t-il ?",
+            {
+                reference: PROCEDURE_INTERNE.arme,
+                reponse: (ctx.arme.tirees && ctx.arme.chargeur)
+                    ? ctx.arme.tirees + ' coup(s) tiré(s), chargeur ' + ctx.arme.chargeur + '.'
+                    : '',
+                manque: (ctx.arme.tirees && ctx.arme.chargeur) ? ''
+                    : 'Nombre de coups tirés ou état du chargeur non renseigné.',
+                aFaire: (ctx.arme.tirees && ctx.arme.chargeur)
+                    ? "L'expertise balistique recomptera les douilles : tout écart devra être expliqué."
+                    : "Le décompte sera confronté à l'expertise balistique. Renseignez-le avant l'audition.",
+                severity: (ctx.arme.tirees && ctx.arme.chargeur) ? 'warn' : 'fail'
+            }));
+
+        points.push(iadPoint('Arme de service et munitions',
+            "Votre arme de service a-t-elle été identifiée et remise au FID ?",
+            {
+                reference: PROCEDURE_INTERNE.arme,
+                reponse: (ctx.arme.modele && ctx.arme.serie)
+                    ? ctx.arme.type + ' ' + ctx.arme.modele + ', calibre ' + (ctx.arme.calibre || '—')
+                        + ', n° de série ' + ctx.arme.serie + '.'
+                    : '',
+                manque: (ctx.arme.modele && ctx.arme.serie) ? '' : "L'arme n'est pas complètement identifiée.",
+                aFaire: (ctx.arme.modele && ctx.arme.serie) ? ''
+                    : "Sans modèle ni numéro de série, l'expertise ne peut pas être rattachée à votre arme.",
+                severity: (ctx.arme.modele && ctx.arme.serie) ? 'ok' : 'fail'
+            }));
+
+        // ─── Preuves et procédure interne ───
+        points.push(iadPoint('Preuves et procédure interne',
+            "Avez-vous remis votre bodycam, et l'enregistrement couvre-t-il l'intégralité des faits ?",
+            {
+                reference: PROCEDURE_INTERNE.bodycam,
+                reponse: ctx.bodycam.remise === 'Oui'
+                    ? 'Bodycam remise, réf. ' + (ctx.bodycam.ref || '—')
+                        + (ctx.bodycam.heures ? ', enregistrement ' + ctx.bodycam.heures + '.' : '.')
+                    : '',
+                manque: ctx.bodycam.remise === 'Oui' ? '' : "La remise de la bodycam n'est pas confirmée.",
+                aFaire: ctx.bodycam.remise === 'Oui'
+                    ? (ctx.bodycam.heures ? '' : "Précisez les heures de début et de fin : une coupure sera relevée.")
+                    : "C'est le seul élément de preuve que vous pouvez fournir. Sa non-remise sera interprétée contre vous.",
+                severity: ctx.bodycam.remise === 'Oui' ? (ctx.bodycam.heures ? 'ok' : 'warn') : 'fail'
+            }));
+
+        points.push(iadPoint('Preuves et procédure interne',
+            "Avez-vous touché à des éléments de la scène après le tir ?",
+            {
+                reference: PROCEDURE_INTERNE.scene,
+                reponse: "Le gabarit rappelle que l'officier impliqué ne collecte aucun élément.",
+                aFaire: "Confirmez que douilles, arme du suspect et CCTV ont été laissés aux enquêteurs. "
+                    + "Toute manipulation vous serait reprochée.",
+                severity: 'warn'
+            }));
+
+        points.push(iadPoint('Preuves et procédure interne',
+            "Qui d'autre était présent et peut corroborer votre récit ?",
+            {
+                reference: PROCEDURE_INTERNE.preuves,
+                reponse: (ctx.temoins && ctx.temoins.length)
+                    ? ctx.temoins.length + ' officier(s) témoin(s) consigné(s).' : '',
+                manque: (ctx.temoins && ctx.temoins.length) ? '' : 'Aucun officier témoin consigné.',
+                aFaire: (ctx.temoins && ctx.temoins.length) ? ''
+                    : "Sans témoin identifié, votre récit reposera sur la seule bodycam.",
+                severity: (ctx.temoins && ctx.temoins.length) ? 'ok' : 'warn'
+            }));
+
+        // ─── Suites ───
+        points.push(iadPoint('Suites immédiates',
+            "Quel est l'état du suspect, et quelle prise en charge a suivi ?",
+            {
+                articles: ['proc:2-4-1', 'proc:2-4-2'],
+                reponse: ctx.suspect.etat
+                    ? 'État après incident : ' + ctx.suspect.etat + '.'
+                        + (ctx.dommages.suspect ? ' Impacts : ' + ctx.dommages.suspect + '.' : '')
+                    : '',
+                manque: ctx.suspect.etat ? '' : "L'état du suspect après l'incident n'est pas renseigné.",
+                aFaire: /Blessé|Décédé/.test(ctx.suspect.etat || '')
+                    ? "La blessure étant imputable à votre tir, l'Art. 2-4-2 impose un rapport d'incident sous 12 h : vérifiez qu'il est transmis."
+                    : (ctx.suspect.etat ? '' : "Renseignez-le : il commande les obligations médicales de l'Art. 2-4-1."),
+                severity: ctx.suspect.etat ? (/Blessé|Décédé/.test(ctx.suspect.etat) ? 'warn' : 'ok') : 'fail'
+            }));
+
+        points.push(iadPoint('Suites immédiates',
+            "Des civils ou des biens ont-ils été touchés ?",
+            {
+                reponse: (ctx.dommages.civil || ctx.dommages.materiel)
+                    ? 'Civils : ' + (ctx.dommages.civil || '—') + '. Dommages matériels : ' + (ctx.dommages.materiel || '—') + '.'
+                    : '',
+                manque: (ctx.dommages.civil || ctx.dommages.materiel) ? '' : 'Aucun élément sur les dommages collatéraux.',
+                aFaire: (ctx.dommages.civil || ctx.dommages.materiel) ? ''
+                    : "Renseignez-les, même négatifs : une omission passe pour une dissimulation.",
+                severity: (ctx.dommages.civil || ctx.dommages.materiel) ? 'ok' : 'warn'
+            }));
+
+        // ─── Rubriques du gabarit encore vides ───
+        (evaluation.missing || []).forEach(function (m) {
+            if (['recit', 'sommations', 'riposte', 'bodycam', 'bodycam_heures',
+                 'arme', 'munitions', 'suspect_arme', 'suspect_etat', 'temoins',
+                 'distance', 'position'].indexOf(m.id) !== -1) return;   // déjà couvert
+            points.push(iadPoint('Rubriques du gabarit',
+                'Pourquoi le rapport ne renseigne-t-il pas : ' + m.label.toLowerCase() + ' ?',
+                {
+                    manque: 'Rubrique vide dans le rapport OIS.',
+                    aFaire: 'Complétez-la : le FID travaille sur ce gabarit.',
+                    severity: 'fail'
+                }));
+        });
+
+        var ordre = ['Fondement légal du tir', 'Menace et riposte', 'Arme de service et munitions',
+                     'Preuves et procédure interne', 'Suites immédiates', 'Rubriques du gabarit'];
+        var parPhase = {};
+        points.forEach(function (p) { (parPhase[p.phase] = parPhase[p.phase] || []).push(p); });
+
+        var groups = ordre.filter(function (p) { return parPhase[p] && parPhase[p].length; })
+            .map(function (p) {
+                parPhase[p].sort(function (a, b) { return SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]; });
+                return { phase: p, items: parPhase[p] };
+            });
+
+        var counts = { fail: 0, warn: 0, ok: 0 };
+        points.forEach(function (p) { if (counts[p.severity] !== undefined) counts[p.severity]++; });
+
+        return {
+            meta: {
+                dossier: ctx.dossier, date: ctx.date, heure: ctx.heure, lieu: ctx.lieu,
+                officier: [ctx.officier.grade, ctx.officier.nom].filter(Boolean).join(' '),
+                badge: ctx.officier.badge,
+                completude: evaluation.percent
+            },
+            counts: counts,
+            groups: groups,
+            todo: points.filter(function (p) { return p.severity === 'fail' || (p.severity === 'warn' && p.aFaire); })
+                .map(function (p) { return { question: p.question, aFaire: p.aFaire, articles: p.articles }; })
+        };
+    }
+
+    function renderIadText(doc) {
+        var L = [];
+        L.push("FICHE DE PRÉPARATION À L'AUDITION FID / IAD");
+        L.push('═══════════════════════════════════════════════');
+        L.push('');
+        L.push('Dossier      : ' + (doc.meta.dossier || '—'));
+        L.push('Incident     : le ' + (doc.meta.date || '—') + ' à ' + (doc.meta.heure || '—')
+            + (doc.meta.lieu ? ' — ' + doc.meta.lieu : ''));
+        L.push('Officier     : ' + (doc.meta.officier || '—')
+            + (doc.meta.badge ? ' (badge ' + doc.meta.badge + ')' : ''));
+        L.push('Complétude   : ' + doc.meta.completude + ' %');
+        L.push('');
+        L.push('Synthèse : ' + doc.counts.fail + ' point(s) bloquant(s), '
+            + doc.counts.warn + ' à consolider, ' + doc.counts.ok + ' conforme(s).');
+        L.push('');
+
+        doc.groups.forEach(function (g) {
+            L.push('───────────────────────────────────────────────');
+            L.push(g.phase.toUpperCase());
+            L.push('───────────────────────────────────────────────');
+            g.items.forEach(function (it) {
+                L.push('');
+                L.push('  [' + (MARK[it.severity] || '·') + '] Q : ' + it.question);
+                (it.articles || []).forEach(function (r) { L.push('      Fondement  : ' + RULES.citation(r)); });
+                if (it.reference) L.push('      Référence  : ' + it.reference);
+                if (it.reponse) L.push('      Le rapport : ' + it.reponse);
+                if (it.manque) L.push('      Faiblesse  : ' + it.manque);
+                if (it.aFaire) L.push('      À ajouter  : ' + it.aFaire);
+            });
+            L.push('');
+        });
+
+        if (doc.todo.length) {
+            L.push('───────────────────────────────────────────────');
+            L.push("À CORRIGER AVANT L'AUDITION");
+            L.push('───────────────────────────────────────────────');
+            L.push('');
+            doc.todo.forEach(function (t, i) { L.push((i + 1) + '. ' + t.aFaire); });
+            L.push('');
+        }
+
+        L.push('───────────────────────────────────────────────');
+        L.push('Document interne de préparation — ne pas verser au dossier.');
+        return L.join('\n');
+    }
+
     var API = {
         buildDefenseDoc: buildDefenseDoc,
         renderText: renderText,
+        buildIadDoc: buildIadDoc,
+        renderIadText: renderIadText,
+        PROCEDURE_INTERNE: PROCEDURE_INTERNE,
         CHARGE_ATTACKS: CHARGE_ATTACKS,
         PHASE_ORDER: PHASE_ORDER
     };

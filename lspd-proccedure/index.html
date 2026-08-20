@@ -76,6 +76,12 @@
                 </ul>
             </div>
             <div class="nav-group">
+                <div class="nav-group-label">Contrôle interne</div>
+                <ul>
+                    <li><a href="#" class="nav-link" data-module="ois"><span class="nav-icon">◈</span> Rapport d'Incident<span class="nav-badge nav-badge-ois">OIS</span></a></li>
+                </ul>
+            </div>
+            <div class="nav-group">
                 <div class="nav-group-label">Référence</div>
                 <ul>
                     <li><a href="#" class="nav-link" data-module="penal"><span class="nav-icon">§</span> Code Pénal</a></li>
@@ -1200,6 +1206,175 @@
                 </div>
                 <div class="report-output" id="interroReportOutput">
                     <p class="placeholder-text">Le procès-verbal apparaîtra ici après génération.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ MODULE: RAPPORT D'INCIDENT (OIS) ═══════════ -->
+        <section id="mod-ois" class="module">
+            <div class="module-header">
+                <h2>Rapport d'Incident — Tir d'Officier (OIS)</h2>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="oisReset">Réinitialiser</button>
+                </div>
+            </div>
+            <p class="rf-intro">
+                Rapport distinct du rapport d'arrestation, remis au <strong>FID/IAD</strong>.
+                L'officier impliqué ne fournit que l'enregistrement de sa bodycam ; tout autre
+                élément de preuve est collecté par les enquêteurs.
+            </p>
+
+            <div class="rf-layout">
+                <div class="rf-col rf-col-input">
+
+                    <div class="form-section">
+                        <h3>Dossier</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Numéro de dossier</label>
+                                <input type="text" id="oisDossier" placeholder="OIS-2026-0001">
+                            </div>
+                            <div class="form-group">
+                                <label>Date &amp; heure de l'incident</label>
+                                <input type="datetime-local" id="oisDatetime">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Lieu</label>
+                                <div class="location-row">
+                                    <input type="text" id="oisLieu" placeholder="Adresse / secteur" list="gtaStreetsList" autocomplete="off">
+                                    <button type="button" class="btn-map-pick" data-target="oisLieu" title="Choisir sur la carte GTA V">🗺</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>1 · Officier impliqué</h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>Sélection depuis le roster</label>
+                                <div class="roster-selector" id="oisRoster"></div>
+                            </div>
+                            <div class="form-group"><label>Nom &amp; prénom</label><input type="text" id="oisOffNom" placeholder="Ex : MENDES Ignacio"></div>
+                            <div class="form-group"><label>Badge n°</label><input type="text" id="oisOffBadge" placeholder="Ex : 1004"></div>
+                            <div class="form-group"><label>Grade</label><input type="text" id="oisOffGrade" placeholder="Ex : Police Officer II"></div>
+                            <div class="form-group"><label>Division / affectation</label><input type="text" id="oisOffDivision" placeholder="Ex : Patrol Division"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Arme de service utilisée</h3>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Type d'arme</label><input type="text" id="oisArmeType" placeholder="Ex : Pistolet"></div>
+                            <div class="form-group"><label>Modèle</label><input type="text" id="oisArmeModele" placeholder="Ex : Glock 17"></div>
+                            <div class="form-group"><label>Calibre</label><input type="text" id="oisArmeCalibre" placeholder="Ex : 9mm"></div>
+                            <div class="form-group"><label>Numéro de série</label><input type="text" id="oisArmeSerie" placeholder="Ex : 1784832418171"></div>
+                            <div class="form-group"><label>Munitions tirées</label><input type="text" id="oisMunitionsTirees" placeholder="Ex : 3"></div>
+                            <div class="form-group"><label>Chargeur avant / après</label><input type="text" id="oisChargeur" placeholder="Ex : 17 / 14"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>2 · Officiers témoins / présents</h3>
+                        <p class="roster-help">Un par ligne, au format « Nom — Badge — Rôle ».</p>
+                        <textarea id="oisTemoins" rows="3" placeholder="COLE Ethan — 1102 — couverture&#10;MCCOY Jesse — 2001 — négociation"></textarea>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>3 · Suspect(s) impliqué(s)</h3>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Nom (si connu)</label><input type="text" id="oisSuspectNom" placeholder="Ex : LOTARE Lucie"></div>
+                            <div class="form-group"><label>Description physique</label><input type="text" id="oisSuspectDesc" placeholder="Ex : femme, 1m70, veste sombre"></div>
+                            <div class="form-group full-width"><label>Armé ? (type d'arme)</label><input type="text" id="oisSuspectArme" placeholder="Ex : oui — Glock 17 modifié (switch)"></div>
+                            <div class="form-group full-width">
+                                <label>État après incident</label>
+                                <div class="tag-selector" id="oisSuspectEtat">
+                                    <button class="tag-btn" data-tag="Blessé">Blessé</button>
+                                    <button class="tag-btn" data-tag="Décédé">Décédé</button>
+                                    <button class="tag-btn" data-tag="En fuite">En fuite</button>
+                                    <button class="tag-btn" data-tag="Interpellé">Interpellé</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>4 · Contexte de l'intervention</h3>
+                        <label class="settings-label">Motif initial</label>
+                        <textarea id="oisMotif" rows="2" placeholder="Ex : appel 911 signalant des coups de feu"></textarea>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>5 · Circonstances du tir</h3>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Véhicule — type et n° d'unité</label><input type="text" id="oisVehicule" placeholder="Ex : Vapid Scout — 14A56"></div>
+                            <div class="form-group"><label>Distance approximative (m)</label><input type="text" id="oisDistance" placeholder="Ex : 8"></div>
+                            <div class="form-group"><label>Position de l'officier</label><input type="text" id="oisPosition" placeholder="Ex : à couvert derrière le véhicule"></div>
+                            <div class="form-group">
+                                <label>Sommations effectuées</label>
+                                <div class="tag-selector" id="oisSommations">
+                                    <button class="tag-btn" data-tag="Oui">Oui</button>
+                                    <button class="tag-btn" data-tag="Non">Non</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Tirs ripostés par le suspect</label>
+                                <div class="tag-selector" id="oisRiposte">
+                                    <button class="tag-btn" data-tag="Oui">Oui</button>
+                                    <button class="tag-btn" data-tag="Non">Non</button>
+                                </div>
+                            </div>
+                            <div class="form-group"><label>Nombre de tirs du suspect</label><input type="text" id="oisRiposteNb" placeholder="Ex : 2"></div>
+                        </div>
+                        <label class="settings-label" style="margin-top:14px;">Récit factuel et chronologique</label>
+                        <textarea id="oisRecit" rows="6" placeholder="Appel radio reçu, trajet, arrivée sur les lieux, comportement du suspect, sommations, menace perçue, décision d'ouvrir le feu, issue…"></textarea>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>6 · Blessures &amp; dommages</h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width"><label>Officier(s) blessé(s)</label><input type="text" id="oisOffBlesse" placeholder="Non — ou détails"></div>
+                            <div class="form-group full-width"><label>Suspect(s) touché(s) — impacts et localisation</label><input type="text" id="oisSuspectTouche" placeholder="Ex : 1 impact, bras droit"></div>
+                            <div class="form-group full-width"><label>Civil(s) touché(s)</label><input type="text" id="oisCivilTouche" placeholder="Non — ou détails"></div>
+                            <div class="form-group full-width"><label>Dommages matériels</label><input type="text" id="oisDommages" placeholder="Ex : pare-brise du véhicule de service"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>7 · Éléments fournis par l'officier</h3>
+                        <p class="roster-help">
+                            L'officier impliqué ne peut fournir que l'enregistrement de sa bodycam.
+                            Tout autre élément est collecté par le FID/IAD. Son arme de service est
+                            saisie pour expertise balistique.
+                        </p>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Bodycam remise</label>
+                                <div class="tag-selector" id="oisBodycam">
+                                    <button class="tag-btn" data-tag="Oui">Oui</button>
+                                    <button class="tag-btn" data-tag="Non">Non</button>
+                                </div>
+                            </div>
+                            <div class="form-group"><label>Référence de l'enregistrement</label><input type="text" id="oisBodycamRef" placeholder="Ex : BC-2026-0812"></div>
+                            <div class="form-group full-width"><label>Heure de début / fin</label><input type="text" id="oisBodycamHeures" placeholder="Ex : 23:00 — 23:35"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rf-col rf-col-preview">
+                    <div class="completeness" id="oisCompleteness"></div>
+                    <div class="probes" id="oisProbes"></div>
+                    <div class="rf-preview-wrap">
+                        <div class="rf-preview-head">
+                            <span class="rf-preview-title">Rapport OIS</span>
+                            <div class="rf-preview-actions">
+                                <button class="btn btn-outline btn-sm" id="oisCopy">⧉ Copier</button>
+                                <button class="btn btn-outline btn-sm" id="oisExport">⤓ Exporter</button>
+                                <button class="btn btn-gold btn-sm" id="oisDefense">⚖ Préparer l'audition IAD</button>
+                            </div>
+                        </div>
+                        <textarea class="rf-preview" id="ois-preview" spellcheck="false" aria-label="Rapport OIS généré"></textarea>
+                    </div>
                 </div>
             </div>
         </section>

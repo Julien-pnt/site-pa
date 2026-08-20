@@ -4278,3 +4278,46 @@ body::before {
     .defense-table { font-size: 0.72rem; }
     .defense-table .dl-art { display: none; }
 }
+
+/* ═══════ RAPPORT D'INCIDENT (OIS) ═══════ */
+.nav-badge-ois {
+    background: var(--red);
+    color: #fff;
+}
+
+.ois-reminder {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--red-bg);
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+}
+.ois-title {
+    font-family: var(--f-disp);
+    font-size: 0.78rem;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 6px;
+}
+.ois-reminder p {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 10px;
+}
+
+/* Le groupe de questions internes ne sort jamais du poste de travail :
+   son cadre le signale visuellement pour éviter toute confusion. */
+.cf-group:has(.cf-group-title:is([data-internal="1"])) { border-color: var(--purple); }
+.cf-group-title[data-internal="1"] {
+    background: rgba(163, 113, 247, 0.14);
+    color: var(--purple);
+}
+.cf-group-title[data-internal="1"]::after {
+    content: ' — non imprimé';
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.75;
+}

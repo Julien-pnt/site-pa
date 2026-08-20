@@ -493,8 +493,78 @@ function palpationVsFouille() {
     check(NAME, 'la fiche fouille ne cite pas l\'Art. 4-2-3', !/Art\. 4-2-3/.test(docF));
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════
+// COUVERTURE DES RAPPORTS RÉELS
+// Les quatre rapports de docs/exemples-rapports.md contiennent des éléments
+// que le moteur doit savoir exprimer. On vérifie ici qu'un champ ou une
+// option existe pour chacun — le rendu, lui, est testé au navigateur.
+// ═══════════════════════════════════════════════════════════════════════
+function couvertureRapportsReels() {
+    const NAME = 'Rapports réels';
+    const cles = RULES.COMPLIANCE_FIELDS.map(f => f.key);
+    const options = {};
+    RULES.COMPLIANCE_FIELDS.forEach(f => { if (f.options) options[f.key] = f.options; });
+    const a = (k) => options[k] || [];
+
+    // R2 — braquage, négociation, palpation, GSR, refus du droit
+    check(NAME, 'R2 ligne de sanction', cles.includes('sanction'));
+    check(NAME, 'R2 sanction non réglée', a('reglementSanction').includes('Non réglée'));
+    check(NAME, 'R2 demandeur du renfort', cles.includes('demandeurRenfort'));
+    check(NAME, "R2 constat à l'arrivée", cles.includes('constatArrivee'));
+    check(NAME, 'R2 dispositif de sécurité', cles.includes('dispositifSecurite'));
+    check(NAME, 'R2 négociation', cles.includes('negociation'));
+    check(NAME, "R2 moyen d'interpellation", cles.includes('moyenInterpellation'));
+    check(NAME, 'R2 GSR positif', a('resultatGsr').includes('Positif'));
+    check(NAME, "R2 refus explicite du droit à l'avocat",
+        a('reactionDroits').some(o => /ne pas souhaiter en faire usage/.test(o)));
+
+    // R3 — victime blessée, droits différés, invoice
+    check(NAME, 'R3 sanction réglée par invoice', a('reglementSanction').includes('Réglée par invoice'));
+    check(NAME, 'R3 droits non notifiés sur place',
+        a('reactionDroits').some(o => /pas été en mesure/.test(o)));
+    check(NAME, 'R3 motif du report de notification', cles.includes('motifDroitsDifferes'));
+    check(NAME, 'R3 heure de notification différée', cles.includes('heureDroitsDifferes'));
+    check(NAME, 'R3 GSR négatif', a('resultatGsr').includes('Négatif'));
+
+    // R4 — filature, preuve photo, nationalité
+    check(NAME, "R4 indicatif d'unité", cles.includes('indicatifUnite'));
+    check(NAME, 'R4 filature / surveillance', cles.includes('surveillance'));
+    check(NAME, 'R4 preuve matérielle', cles.includes('preuveMaterielle'));
+    check(NAME, 'R4 nationalité du suspect', cles.includes('nationaliteSuspect'));
+
+    // Le refus explicite et le silence restent deux réponses distinctes.
+    check(NAME, 'refus et silence ne sont pas confondus',
+        a('reactionDroits').some(o => /ne pas souhaiter en faire usage/.test(o))
+        && a('reactionDroits').some(o => /droit au silence/.test(o)));
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// QUESTION INTERNE — étanchéité au niveau des données
+// ═══════════════════════════════════════════════════════════════════════
+function questionInterne() {
+    const NAME = 'Question interne';
+    const champ = RULES.COMPLIANCE_FIELDS.find(f => f.key === 'auteurUsageArme');
+    check(NAME, 'la question existe', !!champ);
+    check(NAME, 'elle est marquée interne', !!(champ && champ.internal === true));
+    check(NAME, 'elle propose « le rédacteur »',
+        !!(champ && champ.options.includes('Le rédacteur de ce rapport')));
+    check(NAME, 'elle propose « un autre agent »',
+        !!(champ && champ.options.includes('Un autre agent présent')));
+
+    // Aucun item de checklist ni aucune règle de défense ne doit dépendre
+    // d'une réponse interne : elle ne sort pas du poste de travail.
+    check(NAME, 'aucun item de checklist ne la référence',
+        !RULES.CHECKLIST.some(i => i.field === 'auteurUsageArme'));
+    const source = RULES.PROC_RULES.map(r => String(r.run)).join(' ');
+    check(NAME, 'aucune règle de procédure ne la lit',
+        source.indexOf('auteurUsageArme') === -1);
+}
+
 anglesMorts();
 palpationVsFouille();
+couvertureRapportsReels();
+questionInterne();
 
 // ─── Couverture par catégorie du plan ───
 // Les 10 catégories du cahier des charges, chacune adossée aux items de

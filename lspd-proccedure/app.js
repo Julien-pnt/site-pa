@@ -564,7 +564,8 @@
             patrol: [],
             narcotics: [],
             cid: [],
-            interrogation: []
+            interrogation: [],
+            ois: []
         },
         // Tag selections
         patrol: {
@@ -1386,11 +1387,16 @@
         const origine = o.origine || 'Constatation directe en patrouille';
         const amorce = ORIGINE_AMORCE[origine] || ORIGINE_AMORCE['Constatation directe en patrouille'];
         const constat = (o.constatation || '').trim();
+        // L'indicatif désigne l'unité avant sa composition : « L'unité 14A56,
+        // composée du … ». Sans indicatif, la formule reste « l'unité composée … ».
+        const sujet = o.indicatif ? `l'unité ${o.indicatif}, composée ${composition},` : `l'unité composée ${composition}`;
 
-        let s = `Le ${date}, aux alentours de ${time}, l'unité composée ${composition} ${amorce}`;
+        let s = `Le ${date}, aux alentours de ${time}, ${sujet} ${amorce}`;
 
         if (origine === 'Appel du dispatch' || origine === "Renfort d'une autre unité") {
-            s += ` pour ${motif || 'une intervention'}.`;
+            s += ` pour ${motif || 'une intervention'}`;
+            if (o.demandeur) s += `, à la demande ${deElide(o.demandeur)}`;
+            s += '.';
             if (constat) s += ` Sur place, elle a constaté ${constat}.`;
             return s;
         }
@@ -1419,12 +1425,15 @@
         const header = lspdBuildReportHeader({
             date: opts.date, time: opts.time, location: opts.location,
             arrestTime: opts.arrestTime, prosecutor: opts.prosecutor,
-            titreCorps: opts.titreCorps
+            titreCorps: opts.titreCorps,
+            sanction: opts.sanction, reglementSanction: opts.reglementSanction
         });
         // Ouverture : phrase obligatoire commune à tous les modules.
         const intro = lspdBuildIntro(opts.date, opts.time, opts.agents || [], opts.motif, {
             origine: opts.origine,
-            constatation: opts.constatation
+            constatation: opts.constatation,
+            indicatif: opts.indicatif,
+            demandeur: opts.demandeur
         });
         // L'ouverture est un paragraphe à part entière : le récit qui suit
         // est lui-même découpé en paragraphes, un par temps fort.
@@ -1872,7 +1881,16 @@
         function fouilleLines() {
             const feminin = !!(suspect && suspect.gender === 'Féminin');
             const lignes = controleLines('patrol', suspRef, patrolSaisies(), feminin);
-            if (lignes.length) return lignes;
+            if (lignes.length) {
+                const gsr = cf('resultatGsr');
+                if (gsr && gsr !== 'Non effectué') {
+                    lignes.push(`Un test de résidus de poudre a également été réalisé sur ${suspRef} ;`
+                        + ` il s'est révélé ${gsr.toLowerCase()}.`);
+                }
+                const preuve = cf('preuveMaterielle');
+                if (preuve) lignes.push(`Les faits sont matériellement établis par ${preuve}.`);
+                return lignes;
+            }
             // Repli sur les tags historiques si le régime n'est pas renseigné.
             const sp = tags.search_person || [];
             const sv = tags.search_vehicle || [];
@@ -1884,6 +1902,24 @@
                 lines.push("L'ensemble a fait l'objet d'un inventaire détaillé et d'une mise sous scellés.");
             }
             return lines;
+        }
+
+        // ─── 0. Arrivée sur les lieux : constat, dispositif, négociation ───
+        {
+            const p = [];
+            const constat = cf('constatArrivee');
+            const surv = cf('surveillance');
+            if (surv) {
+                p.push(`Arrivés sur zone, les agents ont procédé à ${surv}.`);
+            }
+            if (constat) {
+                p.push(`À leur arrivée sur les lieux, les agents ont constaté ${constat}.`);
+            }
+            const dispositif = cf('dispositifSecurite');
+            if (dispositif) p.push(`Un dispositif de sécurité a immédiatement été mis en place : ${dispositif}.`);
+            const nego = cf('negociation');
+            if (nego) p.push(`Des négociations ont été entamées par ${nego}.`);
+            push(p);
         }
 
         // ─── 1. Poursuite engagée, renfort sollicité ───
@@ -1927,13 +1963,23 @@
         // ─── 3. Interpellation et identification ───
         {
             const p = [];
+            const moyen = cf('moyenInterpellation');
+            const parQuoi = moyen ? ` au moyen ${deElide(moyen)}` : ' par les unités présentes sur place';
             p.push(pursuit
-                ? 'Les occupants ont aussitôt été interpellés par les unités présentes sur place.'
-                : "L'individu a été interpellé sur place par les unités présentes.");
+                ? `Les occupants ont aussitôt été interpellés${parQuoi}.`
+                : `L'individu a été interpellé sur place${parQuoi}.`);
             if (suspName) {
+                // L'état civil complet n'entre au récit que si l'agent a
+                // renseigné la nationalité : certains rapports le détaillent
+                // (« né le …, de nationalité américaine »), d'autres se
+                // limitent au nom. La date de naissance reste de toute façon
+                // portée par l'en-tête, comme l'exige l'Art. 2-2-7.
+                const nat = cf('nationaliteSuspect');
+                const dob = (suspect && suspect.dob) ? `, né le ${suspect.dob}` : '';
+                const etatCivil = nat ? `${dob}, de nationalité ${nat}` : '';
                 p.push(pursuit
-                    ? `${suspName} a été identifié comme étant le conducteur du véhicule.`
-                    : `Le mis en cause a été identifié comme étant ${suspName}.`);
+                    ? `${suspName}${etatCivil} a été identifié comme étant le conducteur du véhicule.`
+                    : `Le mis en cause a été identifié comme étant ${suspName}${etatCivil}.`);
             }
             const obs = tags.suspect_obs || [];
             if (obs.length) p.push(`Il a été constaté chez ${suspRef} les éléments suivants : ${obs.join(', ').toLowerCase()}.`);
@@ -2003,7 +2049,20 @@
                 if (hDroits) p.push(`Ses droits lui ont été notifiés à ${fmtH(hDroits)}.`);
                 else if (miranda.includes('Droits Miranda lus et compris')) p.push(`Les avertissements Miranda ont été lus à ${suspRef}.`);
 
-                if (reaction) {
+                if (/pas été en mesure/i.test(reaction)) {
+                    // Notification impossible sur place : le rapport doit dire
+                    // pourquoi, puis à quelle heure elle a effectivement eu lieu.
+                    const motif = cf('motifDroitsDifferes');
+                    p.length = 0;
+                    p.push(`Ses droits n'ont pas pu lui être notifiés sur place`
+                        + (motif ? `, ${suspRef} étant ${motif.toLowerCase().replace(/^[^—]*—\s*/, '')}` : '')
+                        + '.');
+                    const hDiff = cf('heureDroitsDifferes');
+                    if (hDiff) {
+                        p.push(`Ils lui ont été lus et compris à ${fmtH(hDiff)},`
+                            + ' après autorisation du corps médical.');
+                    }
+                } else if (reaction) {
                     p.push(`${suspName || suspRef} ${reaction.charAt(0).toLowerCase() + reaction.slice(1)}.`);
                 } else {
                     if (miranda.includes('Droits Miranda lus et compris')) p.push(`${suspRef} a déclaré les avoir compris.`);
@@ -3245,6 +3304,10 @@
         const origine = complianceGet('patrol', 'origineIntervention');
         const constatation = complianceGet('patrol', 'constatationInitiale');
         const titreCorps = "RÉSUMÉ DES FAITS ET DE L'ARRESTATION";
+        const indicatif = complianceGet('patrol', 'indicatifUnite');
+        const demandeur = complianceGet('patrol', 'demandeurRenfort');
+        const sanction = complianceGet('patrol', 'sanction');
+        const reglementSanction = complianceGet('patrol', 'reglementSanction');
 
         const allSuspects = getSuspectsData('patrolSuspectCards');
         const realSuspects = allSuspects.filter(s => (s.role || 'Suspect') === 'Suspect');
@@ -3259,6 +3322,7 @@
             return lspdBuildReportBlock({
                 date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr, origine, constatation, titreCorps,
+                indicatif, demandeur, sanction, reglementSanction,
                 infractions: bySuspect[0] || []
             }) + trailer;
         }
@@ -3269,6 +3333,7 @@
             return lspdBuildReportBlock({
                 date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr, origine, constatation, titreCorps,
+                indicatif, demandeur, sanction, reglementSanction,
                 infractions: bySuspect[idx] || []
             });
         });
@@ -3339,6 +3404,7 @@
             return lspdBuildReportBlock({
                 date, time, location, arrestTime, prosecutor, agents, motif,
                 narrative, vehicleStr, origine, constatation, titreCorps,
+                indicatif, demandeur, sanction, reglementSanction,
                 infractions: bySuspect[idx] || []
             });
         });
@@ -5276,7 +5342,9 @@
         const prosecutor = ($('#rfProsecutor') && $('#rfProsecutor').value.trim()) || 'NEANT';
         // En-tête commun (format unifié partagé avec patrol/GND/CID).
         const header = lspdBuildReportHeader({
-            date: ctx.date, time: ctx.time, location: ctx.location, arrestTime, prosecutor
+            date: ctx.date, time: ctx.time, location: ctx.location, arrestTime, prosecutor,
+            sanction: complianceGet('standard', 'sanction'),
+            reglementSanction: complianceGet('standard', 'reglementSanction')
         });
 
         const paras = [];
@@ -5527,8 +5595,18 @@
     const complianceShape = { standard: null, patrol: null };
     const validatedCtx = { standard: null, patrol: null };
 
+    // Les réponses aux questions internes sont stockées HORS de
+    // complianceValues. Le récit et les annexes lisent exclusivement
+    // complianceGet() ou le contexte : une réponse interne n'a donc aucun
+    // chemin pour atteindre le texte du rapport, la copie ou les exports.
+    const internalAnswers = { standard: {}, patrol: {} };
+
     function complianceGet(moduleKey, key) {
         return String(complianceValues[moduleKey][key] || '').trim();
+    }
+
+    function internalGet(moduleKey, key) {
+        return String(internalAnswers[moduleKey][key] || '').trim();
     }
 
     function complianceFieldDomId(moduleKey, key) {
@@ -5545,6 +5623,11 @@
             suspect: { nom: '', prenom: '', dob: '', sexe: '' },
             hasVehicle: false, verifPlaque: '', verifCasier: '',
             origineIntervention: '', constatationInitiale: '',
+            indicatifUnite: '', demandeurRenfort: '', constatArrivee: '',
+            dispositifSecurite: '', negociation: '', surveillance: '',
+            moyenInterpellation: '', resultatGsr: '', preuveMaterielle: '',
+            nationaliteSuspect: '', sanction: '', reglementSanction: '',
+            motifDroitsDifferes: '', heureDroitsDifferes: '',
             uniteRenfort: '', manoeuvreInterception: '', issuePoursuite: '',
             pursuit: false, heureFinPoursuite: '', lieuFinPoursuite: '',
             collision: false, cuffed: false,
@@ -5589,6 +5672,20 @@
     function applyComplianceValues(ctx, moduleKey) {
         const v = k => complianceGet(moduleKey, k);
         ctx.origineIntervention = v('origineIntervention');
+        ctx.indicatifUnite = v('indicatifUnite');
+        ctx.demandeurRenfort = v('demandeurRenfort');
+        ctx.constatArrivee = v('constatArrivee');
+        ctx.dispositifSecurite = v('dispositifSecurite');
+        ctx.negociation = v('negociation');
+        ctx.surveillance = v('surveillance');
+        ctx.moyenInterpellation = v('moyenInterpellation');
+        ctx.resultatGsr = v('resultatGsr');
+        ctx.preuveMaterielle = v('preuveMaterielle');
+        ctx.nationaliteSuspect = v('nationaliteSuspect');
+        ctx.sanction = v('sanction');
+        ctx.reglementSanction = v('reglementSanction');
+        ctx.motifDroitsDifferes = v('motifDroitsDifferes');
+        ctx.heureDroitsDifferes = v('heureDroitsDifferes');
         ctx.constatationInitiale = v('constatationInitiale');
         ctx.uniteRenfort = v('uniteRenfort');
         ctx.manoeuvreInterception = v('manoeuvreInterception');
@@ -5768,7 +5865,9 @@
 
     function buildComplianceInput(moduleKey, field) {
         const domId = complianceFieldDomId(moduleKey, field.key);
-        const current = complianceGet(moduleKey, field.key);
+        const current = field.internal
+            ? internalGet(moduleKey, field.key)
+            : complianceGet(moduleKey, field.key);
         let input;
 
         if (field.type === 'select') {
@@ -5793,6 +5892,11 @@
         // Les heures et justifications alimentent aussi le corps du rapport
         // (chronologie, médical, avocat) : l'aperçu doit se régénérer.
         const sync = () => {
+            if (field.internal) {
+                internalAnswers[moduleKey][field.key] = input.value;
+                refreshCompliance(moduleKey);
+                return;
+            }
             complianceValues[moduleKey][field.key] = input.value;
             if (moduleKey === 'standard') rfUpdatePreview();
             else refreshCompliance(moduleKey);
@@ -5808,7 +5912,7 @@
 
         const visible = RULES.COMPLIANCE_FIELDS.filter(f => {
             try { return f.when(ctx); } catch (e) { return false; }
-        });
+        }).sort((a, b) => (a.internal ? 1 : 0) - (b.internal ? 1 : 0));
         const shape = visible.map(f => f.key).join('|');
         if (shape === complianceShape[moduleKey]) return;   // évite de voler le focus
         complianceShape[moduleKey] = shape;
@@ -5825,6 +5929,7 @@
                 const title = document.createElement('div');
                 title.className = 'cf-group-title';
                 title.textContent = currentGroup;
+                if (field.internal) title.dataset.internal = '1';
                 g.appendChild(title);
                 groupBody = document.createElement('div');
                 groupBody.className = 'cf-group-body';
@@ -5948,6 +6053,30 @@
         }
     }
 
+    // Rappel OIS — affiché APRÈS génération, dans l'interface seulement.
+    // Un tir dont le rédacteur est l'auteur impose un rapport d'incident
+    // distinct, remis au FID/IAD : le rapport d'arrestation ne s'y substitue
+    // pas. Ce rappel ne touche jamais le texte du rapport.
+    function maybeRemindOis(moduleKey) {
+        if (internalGet(moduleKey, 'auteurUsageArme') !== 'Le rédacteur de ce rapport') return;
+        const hote = $('#' + COMPLIANCE_PREFIX[moduleKey] + 'Completeness');
+        if (!hote) return;
+        if (hote.querySelector('.ois-reminder')) return;
+
+        const bloc = document.createElement('div');
+        bloc.className = 'ois-reminder';
+        bloc.innerHTML =
+            '<div class="ois-title">⚠ Rapport d\'incident (OIS) requis</div>'
+            + "<p>Vous avez fait usage de votre arme de service. Ce rapport d'arrestation ne s'y substitue pas : "
+            + "un rapport d'incident distinct doit être rédigé et remis au FID/IAD.</p>"
+            + '<button type="button" class="btn btn-gold btn-sm ois-go">⊕ Ouvrir le Rapport d\'Incident</button>';
+        hote.appendChild(bloc);
+        bloc.querySelector('.ois-go').addEventListener('click', () => {
+            const lien = $('.nav-link[data-module="ois"]');
+            if (lien) lien.click();
+        });
+    }
+
     function updateDefenseButton(moduleKey, ev) {
         const btn = $('#' + COMPLIANCE_PREFIX[moduleKey] + 'Defense');
         if (!btn) return;
@@ -5978,6 +6107,7 @@
 
         validatedCtx[moduleKey] = ctx;
         updateDefenseButton(moduleKey, ev);
+        maybeRemindOis(moduleKey);
         showToast(`Rapport validé — complétude ${ev.percent} %.`);
         return true;
     }
@@ -6074,8 +6204,10 @@
                  </section>` : ''}`;
             body.scrollTop = 0;
         }
+        const titre = $('#defenseModal h3');
+        if (titre) titre.textContent = "⚖ Préparation à l'audience";
         const modal = $('#defenseModal');
-        if (modal) modal.classList.add('active');
+        if (modal) { modal.dataset.kind = 'procureur'; modal.classList.add('active'); }
     }
 
     function initDefenseModal() {
@@ -6084,9 +6216,330 @@
         const close = () => modal.classList.remove('active');
         $('#btnDefenseClose').addEventListener('click', close);
         modal.addEventListener('click', e => { if (e.target === modal) close(); });
-        $('#btnDefenseCopy').addEventListener('click', () => copyToClipboard(defenseText));
-        $('#btnDefenseExport').addEventListener('click',
-            () => exportText(defenseText, 'preparation-audience'));
+        const estIad = () => modal.dataset.kind === 'iad';
+        $('#btnDefenseCopy').addEventListener('click',
+            () => copyToClipboard(estIad() ? iadText : defenseText));
+        $('#btnDefenseExport').addEventListener('click', () => estIad()
+            ? exportText(iadText, 'preparation-audition-iad')
+            : exportText(defenseText, 'preparation-audience'));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // RAPPORT D'INCIDENT — TIR D'OFFICIER (OIS)
+    //
+    // Rapport distinct du rapport d'arrestation, remis au FID/IAD. Il suit
+    // le gabarit officiel du département (docs/template-ois.md), section par
+    // section : les intitulés et l'ordre ne sont pas négociables, c'est ce
+    // document que le FID attend.
+    // ═══════════════════════════════════════════════════════════════════
+
+    const OIS_CHECKBOX = (actif) => (actif ? '☑' : '☐');
+
+    function oisVal(id) {
+        const el = $('#' + id);
+        return el ? el.value.trim() : '';
+    }
+
+    function oisTag(containerId) {
+        const b = $(`#${containerId} .tag-btn.active`);
+        return b ? b.dataset.tag : '';
+    }
+
+    function oisContext() {
+        const dtRaw = oisVal('oisDatetime');
+        const dt = dtRaw ? new Date(dtRaw) : null;
+        return {
+            dossier: oisVal('oisDossier'),
+            date: dt ? lspdFormatDate(dt) : '',
+            heure: dt ? lspdFormatTime(dt) : '',
+            lieu: oisVal('oisLieu'),
+            officier: {
+                nom: oisVal('oisOffNom'), badge: oisVal('oisOffBadge'),
+                grade: oisVal('oisOffGrade'), division: oisVal('oisOffDivision')
+            },
+            arme: {
+                type: oisVal('oisArmeType'), modele: oisVal('oisArmeModele'),
+                calibre: oisVal('oisArmeCalibre'), serie: oisVal('oisArmeSerie'),
+                tirees: oisVal('oisMunitionsTirees'), chargeur: oisVal('oisChargeur')
+            },
+            temoins: oisVal('oisTemoins').split(/\r?\n/).map(t => t.trim()).filter(Boolean),
+            suspect: {
+                nom: oisVal('oisSuspectNom'), description: oisVal('oisSuspectDesc'),
+                arme: oisVal('oisSuspectArme'), etat: oisTag('oisSuspectEtat')
+            },
+            motif: oisVal('oisMotif'),
+            circonstances: {
+                vehicule: oisVal('oisVehicule'), distance: oisVal('oisDistance'),
+                position: oisVal('oisPosition'), sommations: oisTag('oisSommations'),
+                riposte: oisTag('oisRiposte'), riposteNb: oisVal('oisRiposteNb'),
+                recit: oisVal('oisRecit')
+            },
+            dommages: {
+                officier: oisVal('oisOffBlesse'), suspect: oisVal('oisSuspectTouche'),
+                civil: oisVal('oisCivilTouche'), materiel: oisVal('oisDommages')
+            },
+            bodycam: {
+                remise: oisTag('oisBodycam'), ref: oisVal('oisBodycamRef'),
+                heures: oisVal('oisBodycamHeures')
+            }
+        };
+    }
+
+    // Rend le gabarit du département, rubrique par rubrique.
+    function oisBuildReport() {
+        const c = oisContext();
+        const v = (x) => x || '—';
+        const L = [];
+
+        L.push('LOS SANTOS POLICE DEPARTMENT');
+        L.push("Rapport d'Incident Impliquant un Tir d'Officier (OIS)");
+        L.push('');
+        L.push(`Numéro de dossier : ${v(c.dossier)}`);
+        L.push(`Date de l'incident : ${v(c.date)}`);
+        L.push(`Heure de l'incident : ${v(c.heure)}`);
+        L.push(`Lieu : ${v(c.lieu)}`);
+        L.push('');
+        L.push('───────────────────────────────────────────────');
+        L.push('1. OFFICIER IMPLIQUÉ');
+        L.push('───────────────────────────────────────────────');
+        L.push(`Nom & Prénom : ${v(c.officier.nom)}`);
+        L.push(`Badge n° : ${v(c.officier.badge)}`);
+        L.push(`Grade : ${v(c.officier.grade)}`);
+        L.push(`Division / Affectation : ${v(c.officier.division)}`);
+        L.push('');
+        L.push('Arme de service utilisée');
+        L.push(`  Type d'arme : ${v(c.arme.type)}`);
+        L.push(`  Modèle : ${v(c.arme.modele)}`);
+        L.push(`  Calibre : ${v(c.arme.calibre)}`);
+        L.push(`  Numéro de série : ${v(c.arme.serie)}`);
+        L.push(`  Nombre de munitions tirées : ${v(c.arme.tirees)}`);
+        L.push(`  Chargeur avant / après incident : ${v(c.arme.chargeur)}`);
+        L.push('');
+        L.push('───────────────────────────────────────────────');
+        L.push('2. OFFICIERS TÉMOINS / PRÉSENTS');
+        L.push('───────────────────────────────────────────────');
+        if (c.temoins.length) c.temoins.forEach(t => L.push(`- ${t}`));
+        else L.push('- Néant');
+        L.push('');
+        L.push('───────────────────────────────────────────────');
+        L.push('3. SUSPECT(S) IMPLIQUÉ(S)');
+        L.push('───────────────────────────────────────────────');
+        L.push(`Nom (si connu) : ${v(c.suspect.nom)}`);
+        L.push(`Description physique : ${v(c.suspect.description)}`);
+        L.push(`Armé ? (Type d'arme) : ${v(c.suspect.arme)}`);
+        L.push('État après incident : '
+            + ['Blessé', 'Décédé', 'En fuite', 'Interpellé']
+                .map(e => `${OIS_CHECKBOX(c.suspect.etat === e)} ${e}`).join('  '));
+        L.push('');
+        L.push('───────────────────────────────────────────────');
+        L.push("4. CONTEXTE DE L'INTERVENTION");
+        L.push('───────────────────────────────────────────────');
+        L.push("Motif initial de l'intervention :");
+        L.push(v(c.motif));
+        L.push('');
+        L.push('───────────────────────────────────────────────');
+        L.push('5. CIRCONSTANCES DU TIR');
+        L.push('───────────────────────────────────────────────');
+        // Amorce imposée par le gabarit : récit à la première personne.
+        const temoinsAmorce = c.temoins.length
+            ? c.temoins.map(t => t.split('—')[0].trim()).filter(Boolean).join(', ') + ' et moi-même'
+            : 'moi-même';
+        L.push(`« Le ${v(c.date)} à ${v(c.heure)}, je me trouvais dans la patrouille composée de `
+            + `${temoinsAmorce}, à bord du véhicule ${v(c.circonstances.vehicule)}, lorsque… »`);
+        L.push('');
+        L.push(v(c.circonstances.recit));
+        L.push('');
+        L.push(`Distance approximative : ${v(c.circonstances.distance)} mètres`);
+        L.push(`Position de l'officier : ${v(c.circonstances.position)}`);
+        L.push('Sommations effectuées : '
+            + `${OIS_CHECKBOX(c.circonstances.sommations === 'Oui')} Oui  `
+            + `${OIS_CHECKBOX(c.circonstances.sommations === 'Non')} Non`);
+        L.push('Tirs ripostés par le suspect : '
+            + `${OIS_CHECKBOX(c.circonstances.riposte === 'Oui')} Oui  `
+            + `${OIS_CHECKBOX(c.circonstances.riposte === 'Non')} Non`
+            + ` — Nombre : ${v(c.circonstances.riposteNb)}`);
+        L.push('');
+        L.push('───────────────────────────────────────────────');
+        L.push('6. BLESSURES & DOMMAGES');
+        L.push('───────────────────────────────────────────────');
+        L.push(`Officier(s) blessé(s) : ${v(c.dommages.officier)}`);
+        L.push(`Suspect(s) touché(s) : ${v(c.dommages.suspect)}`);
+        L.push(`Civil(s) touché(s) : ${v(c.dommages.civil)}`);
+        L.push(`Dommages matériels : ${v(c.dommages.materiel)}`);
+        L.push('');
+        L.push('───────────────────────────────────────────────');
+        L.push("7. ÉLÉMENTS FOURNIS PAR L'OFFICIER");
+        L.push('───────────────────────────────────────────────');
+        L.push("L'officier impliqué ne peut fournir que l'enregistrement de sa bodycam.");
+        L.push('Tout autre élément de preuve est collecté exclusivement par les enquêteurs');
+        L.push('du FID / IAD et les autres unités présentes.');
+        L.push('');
+        L.push(`${OIS_CHECKBOX(c.bodycam.remise === 'Oui')} Enregistrement bodycam remis — Réf. : ${v(c.bodycam.ref)}`);
+        L.push(`Heure de début / fin de l'enregistrement : ${v(c.bodycam.heures)}`);
+        L.push("Note : l'arme de service de l'officier est saisie par le FID/IAD pour expertise balistique.");
+        L.push('');
+        L.push(`Signature de l'officier : _______________    Date : ${v(c.date)}`);
+        L.push('');
+        L.push("Rappel procédure : après un OIS, l'officier remet immédiatement sa bodycam au");
+        L.push("superviseur sur place et son arme de service au FID/IAD. Il ne touche à rien");
+        L.push("d'autre sur la scène.");
+
+        return sanitizeRadioCodes(L.join('\n'));
+    }
+
+    // Complétude propre au rapport OIS : le gabarit du FID attend ces
+    // rubriques renseignées, faute de quoi l'audition portera dessus.
+    function oisEvaluate() {
+        const c = oisContext();
+        const items = [
+            ['dossier', 'Numéro de dossier', !!c.dossier],
+            ['datetime', "Date et heure de l'incident", !!(c.date && c.heure)],
+            ['lieu', 'Lieu de l\'incident', !!c.lieu],
+            ['officier', 'Identité, badge et grade de l\'officier', !!(c.officier.nom && c.officier.badge && c.officier.grade)],
+            ['division', 'Division / affectation', !!c.officier.division],
+            ['arme', 'Arme de service — type, modèle, calibre, série', !!(c.arme.type && c.arme.modele && c.arme.calibre && c.arme.serie)],
+            ['munitions', 'Munitions tirées et état du chargeur', !!(c.arme.tirees && c.arme.chargeur)],
+            ['temoins', 'Officiers témoins / présents', c.temoins.length > 0],
+            ['suspect', 'Identité ou description du suspect', !!(c.suspect.nom || c.suspect.description)],
+            ['suspect_arme', 'Suspect armé — type d\'arme', !!c.suspect.arme],
+            ['suspect_etat', 'État du suspect après incident', !!c.suspect.etat],
+            ['motif', "Motif initial de l'intervention", !!c.motif],
+            ['recit', 'Récit factuel et chronologique du tir', c.circonstances.recit.length > 40],
+            ['vehicule', "Véhicule et indicatif d'unité", !!c.circonstances.vehicule],
+            ['distance', 'Distance approximative', !!c.circonstances.distance],
+            ['position', "Position de l'officier au moment du tir", !!c.circonstances.position],
+            ['sommations', 'Sommations effectuées', !!c.circonstances.sommations],
+            ['riposte', 'Tirs ripostés par le suspect', !!c.circonstances.riposte],
+            ['dommages', 'Blessures et dommages', !!(c.dommages.officier && c.dommages.suspect)],
+            ['bodycam', 'Bodycam remise et référencée', c.bodycam.remise === 'Oui' ? !!c.bodycam.ref : !!c.bodycam.remise],
+            ['bodycam_heures', "Heures de début et de fin de l'enregistrement", !!c.bodycam.heures]
+        ].map(([id, label, ok]) => ({ id, label, status: ok ? 'ok' : 'missing' }));
+
+        const missing = items.filter(i => i.status === 'missing');
+        const percent = Math.round(((items.length - missing.length) / items.length) * 100);
+        return { items, missing, percent, valid: missing.length === 0, applicableCount: items.length };
+    }
+
+    function oisRender() {
+        const ta = $('#ois-preview');
+        if (ta) ta.value = oisBuildReport();
+
+        const ev = oisEvaluate();
+        const bar = $('#oisCompleteness');
+        if (bar) {
+            const tone = ev.valid ? 'ok' : (ev.percent >= 70 ? 'warn' : 'bad');
+            bar.innerHTML =
+                `<div class="cp-head"><span class="cp-title">Complétude du rapport OIS</span>`
+                + `<span class="cp-score cp-${tone}">${ev.percent} %</span></div>`
+                + `<div class="cp-bar"><div class="cp-fill cp-${tone}" style="width:${ev.percent}%"></div></div>`
+                + `<div class="cp-sub">${ev.applicableCount - ev.missing.length}/${ev.applicableCount} rubriques du gabarit renseignées</div>`;
+        }
+        const probes = $('#oisProbes');
+        if (probes) {
+            probes.innerHTML = ev.missing.length
+                ? `<div class="probes-head">${ev.missing.length} rubrique(s) à compléter</div>`
+                    + ev.missing.map(m => `<div class="probe"><div class="probe-q">${escapeHtml(m.label)}</div></div>`).join('')
+                : '<div class="probes-clear">✓ Toutes les rubriques du gabarit sont renseignées.</div>';
+        }
+        const btn = $('#oisDefense');
+        if (btn) btn.disabled = false;
+    }
+
+    function oisInit() {
+        if (!$('#mod-ois')) return;
+
+        buildRosterSelector('oisRoster', 'ois');
+        setDatetimeNow('oisDatetime');
+
+        // Sélectionner un agent au roster pré-remplit son identité.
+        const roster = $('#oisRoster');
+        if (roster) roster.addEventListener('click', () => setTimeout(() => {
+            const agents = lspdSelectedRoster('ois');
+            if (!agents.length) return;
+            const a = agents[0];
+            if ($('#oisOffNom') && !$('#oisOffNom').value) $('#oisOffNom').value = a.name || '';
+            if ($('#oisOffGrade') && !$('#oisOffGrade').value) $('#oisOffGrade').value = a.grade || '';
+            if ($('#oisOffBadge') && !$('#oisOffBadge').value) $('#oisOffBadge').value = a.matricule || '';
+            oisRender();
+        }, 0));
+
+        // Sélecteurs à choix unique.
+        ['oisSuspectEtat', 'oisSommations', 'oisRiposte', 'oisBodycam'].forEach(id => {
+            const c = $('#' + id);
+            if (!c) return;
+            c.addEventListener('click', e => {
+                const b = e.target.closest('.tag-btn');
+                if (!b) return;
+                const etait = b.classList.contains('active');
+                [...c.querySelectorAll('.tag-btn')].forEach(x => x.classList.remove('active'));
+                if (!etait) b.classList.add('active');
+                oisRender();
+            });
+        });
+
+        $('#mod-ois').addEventListener('input', oisRender);
+        $('#mod-ois').addEventListener('change', oisRender);
+
+        const copy = $('#oisCopy');
+        if (copy) copy.addEventListener('click', () => copyToClipboard(oisBuildReport()));
+        const exp = $('#oisExport');
+        if (exp) exp.addEventListener('click', () => exportText(oisBuildReport(), 'rapport-ois'));
+        const def = $('#oisDefense');
+        if (def) def.addEventListener('click', openIadModal);
+
+        const reset = $('#oisReset');
+        if (reset) reset.addEventListener('click', () => {
+            $$('#mod-ois input, #mod-ois textarea').forEach(el => { el.value = ''; });
+            $$('#mod-ois .tag-btn.active').forEach(b => b.classList.remove('active'));
+            state.selectedAgents.ois = [];
+            buildRosterSelector('oisRoster', 'ois');
+            setDatetimeNow('oisDatetime');
+            oisRender();
+            showToast('Rapport OIS réinitialisé.');
+        });
+
+        oisRender();
+    }
+
+    // ─── Fiche de préparation à l'audition IAD/FID ───
+    let iadText = '';
+
+    function openIadModal() {
+        const ctx = oisContext();
+        const ev = oisEvaluate();
+        const doc = DEFENSE.buildIadDoc(ctx, ev);
+        iadText = sanitizeRadioCodes(DEFENSE.renderIadText(doc));
+
+        const sub = $('#defenseSub');
+        if (sub) {
+            sub.textContent = `Audition FID/IAD · ${doc.meta.officier || 'officier non renseigné'} · `
+                + `${doc.counts.fail} bloquant(s), ${doc.counts.warn} à consolider`;
+        }
+        const titre = $('#defenseModal h3');
+        if (titre) titre.textContent = "⚖ Préparation à l'audition FID/IAD";
+
+        const body = $('#defenseBody');
+        if (body) {
+            body.innerHTML = doc.groups.map(g => `
+                <section>
+                    <h4>${escapeHtml(g.phase)}</h4>
+                    ${g.items.map(it => `
+                        <div class="defense-item di-${it.severity}">
+                            <div class="di-head">
+                                <span class="di-badge">${escapeHtml(SEVERITY_LABEL[it.severity] || '')}</span>
+                                <span class="di-q">${escapeHtml(it.question)}</span>
+                            </div>
+                            ${(it.articles || []).map(r => `<div class="di-art">${escapeHtml(RULES.citation(r))}</div>`).join('')}
+                            ${it.reference ? `<div class="di-art">${escapeHtml(it.reference)}</div>` : ''}
+                            ${it.reponse ? `<div class="di-line"><b>Le rapport :</b> ${escapeHtml(it.reponse)}</div>` : ''}
+                            ${it.manque ? `<div class="di-line di-gap"><b>Faiblesse :</b> ${escapeHtml(it.manque)}</div>` : ''}
+                            ${it.aFaire ? `<div class="di-line di-fix"><b>À ajouter :</b> ${escapeHtml(it.aFaire)}</div>` : ''}
+                        </div>`).join('')}
+                </section>`).join('');
+            body.scrollTop = 0;
+        }
+        const modal = $('#defenseModal');
+        if (modal) { modal.dataset.kind = 'iad'; modal.classList.add('active'); }
     }
 
     function initCompliance() {
@@ -6255,6 +6708,9 @@
 
         // Complétude, relances et préparation de la défense (standard + patrouille)
         initCompliance();
+
+        // Rapport d'incident (OIS) — module distinct, remis au FID/IAD
+        oisInit();
     }
 
     // ═══════════════════════════════════════════════════════════════════

@@ -17,6 +17,7 @@
 | **GND — Stupéfiants** | Saisie de drogue, conditionnement, affiliation gang, armes saisies, calculateur pénal intégré |
 | **CID — Crimes Majeurs** | Scène de crime, balistique, empreintes, mandats judiciaires |
 | **Interrogatoire** | Procès-verbal avec blocs Q/R dynamiques |
+| **Rapport d'Incident (OIS)** | Rapport de tir d'officier au gabarit du département, remis au FID/IAD, avec fiche de préparation à l'audition |
 | **Code Pénal** | Calculateur de peines avec fiche de charges auto-générée |
 
 ### Complétude & conformité légale (Rapport Rapide + Rapport de Patrouille)
@@ -69,6 +70,32 @@ Deux motifs contraires au code sont proposés dans les listes et signalés comme
 faiblesses par la fiche de défense : la palpation « systématique », que
 l'Art. 4-2-1 exclut, et la fouille fondée sur les antécédents judiciaires, que
 l'Art. 4-1-3 écarte expressément.
+
+### Rapport d'Incident (OIS) et question interne
+
+Un tir dont le rédacteur est l'auteur impose un rapport d'incident **distinct**,
+remis au FID/IAD : le rapport d'arrestation ne s'y substitue pas.
+
+La section « Chronologie & conformité » pose donc une question — *qui a fait usage
+de son arme ?* — dont la réponse **ne sort jamais de l'application**. Elle est
+stockée hors du contexte du rapport : ni le récit, ni l'en-tête, ni les annexes, ni
+la copie, ni les exports n'y ont accès. Elle sert uniquement à afficher, après
+génération, un rappel invitant à ouvrir le module Rapport d'Incident. Le groupe de
+champs concerné est encadré et libellé « non imprimé » dans le formulaire.
+
+Le module **Rapport d'Incident** reprend le gabarit de `docs/template-ois.md`
+rubrique par rubrique : officier impliqué et arme de service, officiers témoins,
+suspect et son état, contexte, circonstances du tir (distance, position,
+sommations, riposte), blessures et dommages, éléments fournis. Il rappelle que
+l'officier impliqué ne peut fournir que sa bodycam, tout autre élément étant
+collecté par les enquêteurs.
+
+Le bouton **⚖ Préparer l'audition IAD** produit l'équivalent de la fiche destinée au
+procureur, mais pour le contrôle interne : l'interlocuteur change et les questions
+avec lui. Le FID n'instruit pas la culpabilité du suspect — il vérifie que l'usage
+de l'arme entrait dans les cinq cas de l'Art. 123, que la procédure interne a été
+suivie (bodycam remise, arme saisie, scène non touchée) et que le récit tient face
+aux éléments matériels que l'officier ne maîtrise pas.
 
 ### Préparer la défense
 
@@ -168,6 +195,8 @@ node tools/test-reference-report.js   # fidélité au modèle de rapport du DOJ
 node tools/test-reference-report.js --print   # + le rapport généré
 node tools/test-palpation-fouille.js  # distinction des deux régimes du Titre IV
 node tools/test-palpation-fouille.js --print  # + les deux paragraphes produits
+node tools/test-ois.js               # module OIS, question interne, fiche IAD
+node tools/test-ois.js --print       # + le rapport OIS généré
 ```
 
 `test-scenarios.js` couvre trois scénarios — interpellation simple, poursuite avec
@@ -186,6 +215,12 @@ résultats de fouille au titre de l'Art. 2-2-7) — mais jamais plus pauvre.
 `test-palpation-fouille.js` vérifie sur une même intervention que basculer de la
 palpation à la fouille change les champs proposés, le paragraphe rédigé et les
 articles cités, dans les deux modules.
+
+`test-ois.js` contrôle trois choses distinctes : que le module Rapport d'Incident
+couvre les 24 rubriques du gabarit, que la réponse à la question interne
+n'apparaît **ni dans le rapport, ni dans la fiche de défense** tout en déclenchant
+le rappel à l'écran, et que la fiche d'audition FID/IAD cite ses articles et ses
+points de procédure interne.
 
 ## Lancement
 

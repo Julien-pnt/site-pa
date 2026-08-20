@@ -237,6 +237,48 @@
             when: function (ctx) { return ctx.pursuit; }
         },
         {
+            key: 'indicatifUnite', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Indicatif de l\'unité',
+            placeholder: 'Ex : 14A56',
+            when: function () { return true; }
+        },
+        {
+            key: 'demandeurRenfort', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Unité ou agent à l\'origine de la demande',
+            placeholder: "Ex : l'agente June Monroe (unité Lincoln)",
+            when: function (ctx) { return /[Rr]enfort|dispatch/.test(ctx.origineIntervention || ''); }
+        },
+        {
+            key: 'constatArrivee', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Constat à l\'arrivée sur les lieux',
+            placeholder: 'Ex : un individu en train de braquer un tiers à l\'aide d\'un pistolet',
+            when: function () { return true; }
+        },
+        {
+            key: 'dispositifSecurite', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Dispositif de sécurité mis en place',
+            placeholder: 'Ex : périmètre de sécurité et blocage de la circulation',
+            when: function () { return true; }
+        },
+        {
+            key: 'negociation', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Négociations — agent en charge',
+            placeholder: 'Ex : le Police Officer II Jesse McCoy',
+            when: function () { return true; }
+        },
+        {
+            key: 'surveillance', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Surveillance ou filature préalable',
+            placeholder: 'Ex : une filature discrète du secteur',
+            when: function () { return true; }
+        },
+        {
+            key: 'moyenInterpellation', group: 'Déroulé de l\'intervention', type: 'text',
+            label: 'Moyen ayant permis l\'interpellation',
+            placeholder: 'Ex : un lanceur de balles souples, par l\'unité d\'intervention',
+            when: function () { return true; }
+        },
+        {
             key: 'issuePoursuite', group: 'Déroulé de l\'intervention', type: 'select',
             label: 'Issue de la poursuite',
             options: [
@@ -329,6 +371,43 @@
             when: function (ctx) {
                 return !!ctx.fouille.nature && ctx.fouille.nature !== 'Aucune palpation ni fouille';
             }
+        },
+        {
+            key: 'resultatGsr', group: 'Palpation & fouille', type: 'select',
+            label: 'Test de résidus de poudre (GSR)',
+            options: ['', 'Positif', 'Négatif', 'Non effectué'],
+            when: function () { return true; }
+        },
+        {
+            key: 'preuveMaterielle', group: 'Palpation & fouille', type: 'text',
+            label: 'Élément matériel établissant les faits',
+            placeholder: "Ex : une photographie prise par l'agent Joe White au moment des faits",
+            when: function () { return true; }
+        },
+
+        // ═══════════════════════════════════════════════════════════════
+        // QUESTION INTERNE — jamais imprimée
+        //
+        // `internal: true` retire ce champ de tout ce qui sort de
+        // l'application : récit, en-tête, annexes, copie, export. Sa réponse
+        // est stockée à part et ne transite jamais par le contexte du
+        // rapport. Elle sert uniquement à rappeler au rédacteur qu'un tir
+        // dont il est l'auteur impose un rapport OIS distinct, remis au
+        // FID/IAD — information de procédure interne, sans rapport avec le
+        // dossier remis au procureur.
+        // ═══════════════════════════════════════════════════════════════
+        {
+            key: 'auteurUsageArme', group: 'Suivi interne (non imprimé)', type: 'select',
+            internal: true,
+            label: 'Qui a fait usage de son arme ?',
+            hint: "Cette réponse reste dans l'application : elle n'apparaît ni dans le rapport, ni dans les exports.",
+            options: [
+                '',
+                'Aucun usage d\'arme à feu',
+                'Le rédacteur de ce rapport',
+                'Un autre agent présent'
+            ],
+            when: function () { return true; }
         },
 
         // ─── Repères de lieu ───
@@ -444,15 +523,38 @@
         {
             key: 'reactionDroits', group: 'Droits & avocat', type: 'select',
             label: 'Réaction de l\'individu',
+            // Renoncer expressément à un droit et se taire ne sont pas la
+            // même chose : la renonciation est une déclaration positive de
+            // l'individu, le silence une absence de réponse. Le rapport doit
+            // les distinguer, la défense s'appuyant sur l'une ou sur l'autre.
             options: [
                 '',
                 'A déclaré les avoir compris',
                 'A déclaré les avoir compris et a expressément sollicité l\'assistance d\'un avocat',
+                'A déclaré les avoir compris et a déclaré ne pas souhaiter en faire usage',
                 'A déclaré les avoir compris et a invoqué son droit au silence',
                 'N\'a pas été en mesure de les comprendre (inconscient / incohérent)',
                 'A refusé de répondre'
             ],
             when: function () { return true; }
+        },
+        {
+            key: 'motifDroitsDifferes', group: 'Droits & avocat', type: 'select',
+            label: 'Motif du report de la notification',
+            hint: "Art. 2-2-5 — la notification différée doit être justifiée et tracée.",
+            options: [
+                '',
+                "État de santé — incapacité à comprendre la portée des droits",
+                'Individu inconscient',
+                "Individu sous l'emprise manifeste de l'alcool ou de stupéfiants",
+                'Individu en cours de prise en charge médicale'
+            ],
+            when: function (ctx) { return /pas été en mesure/i.test(ctx.miranda.reaction || ''); }
+        },
+        {
+            key: 'heureDroitsDifferes', group: 'Droits & avocat', type: 'time',
+            label: 'Heure de notification effective, après autorisation médicale',
+            when: function (ctx) { return /pas été en mesure/i.test(ctx.miranda.reaction || ''); }
         },
         {
             key: 'heureContactAvocat', group: 'Droits & avocat', type: 'time',
@@ -480,6 +582,24 @@
                 'Non effectuée'
             ],
             when: function (ctx) { return ctx.hasVehicle; }
+        },
+        {
+            key: 'nationaliteSuspect', group: 'Vérifications & suites', type: 'text',
+            label: 'Nationalité de l’individu',
+            placeholder: 'Ex : américaine',
+            when: function () { return true; }
+        },
+        {
+            key: 'sanction', group: 'Vérifications & suites', type: 'text',
+            label: 'Sanction prononcée',
+            placeholder: 'Ex : amende 6000 $, 0 mois de prison',
+            when: function () { return true; }
+        },
+        {
+            key: 'reglementSanction', group: 'Vérifications & suites', type: 'select',
+            label: 'Règlement de la sanction',
+            options: ['', 'Réglée par invoice', 'Réglée en espèces', 'Non réglée'],
+            when: function (ctx) { return !!ctx.sanction; }
         },
         {
             key: 'verifCasier', group: 'Vérifications & suites', type: 'select',

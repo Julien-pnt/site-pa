@@ -84,18 +84,34 @@ génération, un rappel invitant à ouvrir le module Rapport d'Incident. Le grou
 champs concerné est encadré et libellé « non imprimé » dans le formulaire.
 
 Le module **Rapport d'Incident** reprend le gabarit de `docs/template-ois.md`
-rubrique par rubrique : officier impliqué et arme de service, officiers témoins,
-suspect et son état, contexte, circonstances du tir (distance, position,
-sommations, riposte), blessures et dommages, éléments fournis. Il rappelle que
-l'officier impliqué ne peut fournir que sa bodycam, tout autre élément étant
-collecté par les enquêteurs.
+section par section, dans son ordre : en-tête (dossier, date, lieu, conditions
+météo et luminosité), officier impliqué et arme de service, **autres officiers**
+— ceux ayant fait usage de la force et les témoins non impliqués formant deux
+listes distinctes —, suspect et son état, contexte, circonstances, blessures et
+dommages, **actions post-incident**, éléments fournis, puis les unités chargées
+des deux enquêtes.
 
-Le bouton **⚖ Préparer l'audition IAD** produit l'équivalent de la fiche destinée au
+Trois points structurent le document :
+
+- **La menace perçue et les alternatives envisagées** en sont le cœur. L'Art. 123
+  subordonne l'usage de l'arme à l'absolue nécessité : il ne suffit pas de décrire
+  le tir, il faut établir ce que faisait le suspect à cet instant et pourquoi aucun
+  autre moyen ne pouvait être employé.
+- **La bodycam n'est pas exclusive.** C'est une pièce importante, mais le rapport
+  reste la déclaration principale de l'officier ; la collecte des autres éléments
+  revient à l'équipe d'enquête désignée. L'arme de service est remise pour
+  expertise balistique, une arme de remplacement étant attribuée.
+- **Les deux enquêtes sont séparées.** L'enquête pénale porte sur l'usage de la
+  force, l'administrative sur le respect des procédures, et la déclaration faite
+  dans la seconde ne peut pas être utilisée dans la première.
+
+Le bouton **⚖ Préparer l'audition** produit l'équivalent de la fiche destinée au
 procureur, mais pour le contrôle interne : l'interlocuteur change et les questions
-avec lui. Le FID n'instruit pas la culpabilité du suspect — il vérifie que l'usage
-de l'arme entrait dans les cinq cas de l'Art. 123, que la procédure interne a été
-suivie (bodycam remise, arme saisie, scène non touchée) et que le récit tient face
-aux éléments matériels que l'officier ne maîtrise pas.
+avec lui. On n'y instruit pas la culpabilité du suspect — on vérifie que l'usage de
+l'arme entrait dans les cinq cas de l'Art. 123, que la désescalade a été tentée,
+que les actions post-incident ont été menées (scène sécurisée, superviseur
+prévenu), et que le décompte de munitions déclaré par l'officier résistera au
+recomptage des douilles.
 
 ### Préparer la défense
 
@@ -217,10 +233,12 @@ palpation à la fouille change les champs proposés, le paragraphe rédigé et l
 articles cités, dans les deux modules.
 
 `test-ois.js` contrôle trois choses distinctes : que le module Rapport d'Incident
-couvre les 24 rubriques du gabarit, que la réponse à la question interne
+couvre les 43 rubriques du gabarit, que la réponse à la question interne
 n'apparaît **ni dans le rapport, ni dans la fiche de défense** tout en déclenchant
-le rappel à l'écran, et que la fiche d'audition FID/IAD cite ses articles et ses
-points de procédure interne.
+le rappel à l'écran, et que la fiche d'audition cite ses articles et ses points de
+procédure interne. Le gabarit étant appelé à évoluer, ce test est le garde-fou :
+toute rubrique ajoutée ou renommée dans `docs/template-ois.md` doit y être
+répercutée.
 
 ## Lancement
 

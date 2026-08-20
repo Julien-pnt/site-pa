@@ -6248,171 +6248,228 @@
     function oisContext() {
         const dtRaw = oisVal('oisDatetime');
         const dt = dtRaw ? new Date(dtRaw) : null;
+        const lignes = (id) => oisVal(id).split(/\r?\n/).map(t => t.trim()).filter(Boolean);
         return {
             dossier: oisVal('oisDossier'),
             date: dt ? lspdFormatDate(dt) : '',
             heure: dt ? lspdFormatTime(dt) : '',
             lieu: oisVal('oisLieu'),
+            meteo: oisVal('oisMeteo'),
             officier: {
                 nom: oisVal('oisOffNom'), badge: oisVal('oisOffBadge'),
-                grade: oisVal('oisOffGrade'), division: oisVal('oisOffDivision')
+                grade: oisVal('oisOffGrade'), affectation: oisVal('oisOffAffectation')
             },
             arme: {
                 type: oisVal('oisArmeType'), modele: oisVal('oisArmeModele'),
                 calibre: oisVal('oisArmeCalibre'), serie: oisVal('oisArmeSerie'),
                 tirees: oisVal('oisMunitionsTirees'), chargeur: oisVal('oisChargeur')
             },
-            temoins: oisVal('oisTemoins').split(/\r?\n/).map(t => t.trim()).filter(Boolean),
+            // Le gabarit distingue les officiers ayant fait usage de la force
+            // des simples témoins : ils ne seront pas entendus de la même façon.
+            officiersForce: lignes('oisOfficiersForce'),
+            temoins: lignes('oisTemoins'),
             suspect: {
                 nom: oisVal('oisSuspectNom'), description: oisVal('oisSuspectDesc'),
                 arme: oisVal('oisSuspectArme'), etat: oisTag('oisSuspectEtat')
             },
             motif: oisVal('oisMotif'),
             circonstances: {
-                vehicule: oisVal('oisVehicule'), distance: oisVal('oisDistance'),
-                position: oisVal('oisPosition'), sommations: oisTag('oisSommations'),
-                riposte: oisTag('oisRiposte'), riposteNb: oisVal('oisRiposteNb'),
-                recit: oisVal('oisRecit')
+                unite: oisVal('oisUnite'), distance: oisVal('oisDistance'),
+                position: oisVal('oisPosition'), recit: oisVal('oisRecit'),
+                menacePercue: oisVal('oisMenacePercue'),
+                alternatives: oisVal('oisAlternatives'),
+                sommations: oisTag('oisSommations'),
+                sommationsPrecision: oisVal('oisSommationsPrecision'),
+                riposte: oisTag('oisRiposte'), riposteNb: oisVal('oisRiposteNb')
             },
             dommages: {
-                officier: oisVal('oisOffBlesse'), suspect: oisVal('oisSuspectTouche'),
-                civil: oisVal('oisCivilTouche'), materiel: oisVal('oisDommages')
+                officier: oisTag('oisOffBlesse'), officierDetail: oisVal('oisOffBlesseDetail'),
+                suspect: oisVal('oisSuspectTouche'),
+                civil: oisTag('oisCivilTouche'), civilDetail: oisVal('oisCivilToucheDetail'),
+                soinsPlace: oisVal('oisSoinsPlace'), materiel: oisVal('oisDommages')
+            },
+            postIncident: {
+                securisation: oisVal('oisSecurisationScene'),
+                temoinsIdentifies: oisVal('oisTemoinsIdentifies'),
+                superviseur: oisVal('oisSuperviseur'),
+                superviseurHeure: oisVal('oisSuperviseurHeure')
             },
             bodycam: {
                 remise: oisTag('oisBodycam'), ref: oisVal('oisBodycamRef'),
-                heures: oisVal('oisBodycamHeures')
+                heures: oisVal('oisBodycamHeures'),
+                rapportDetaille: oisTag('oisRapportDetaille')
+            },
+            enquetes: {
+                penale: oisVal('oisEnquetePenale'),
+                administrative: oisVal('oisEnqueteAdmin')
             }
         };
     }
 
-    // Rend le gabarit du département, rubrique par rubrique.
+    // Rend le gabarit du département, section par section et dans son ordre.
     function oisBuildReport() {
         const c = oisContext();
         const v = (x) => x || '—';
+        const ouiNon = (val) => `${OIS_CHECKBOX(val === 'Oui')} Oui  ${OIS_CHECKBOX(val === 'Non')} Non`;
         const L = [];
 
+        L.push('RAPPORT OIS — OFFICER INVOLVED SHOOTING');
         L.push('LOS SANTOS POLICE DEPARTMENT');
-        L.push("Rapport d'Incident Impliquant un Tir d'Officier (OIS)");
         L.push('');
         L.push(`Numéro de dossier : ${v(c.dossier)}`);
-        L.push(`Date de l'incident : ${v(c.date)}`);
-        L.push(`Heure de l'incident : ${v(c.heure)}`);
-        L.push(`Lieu : ${v(c.lieu)}`);
+        L.push(`Date de l'incident : ${v(c.date)}   Heure : ${v(c.heure)}   Lieu : ${v(c.lieu)}`);
+        L.push(`Conditions météo / luminosité : ${v(c.meteo)}`);
         L.push('');
         L.push('───────────────────────────────────────────────');
         L.push('1. OFFICIER IMPLIQUÉ');
         L.push('───────────────────────────────────────────────');
-        L.push(`Nom & Prénom : ${v(c.officier.nom)}`);
-        L.push(`Badge n° : ${v(c.officier.badge)}`);
-        L.push(`Grade : ${v(c.officier.grade)}`);
-        L.push(`Division / Affectation : ${v(c.officier.division)}`);
+        L.push(`Nom / Prénom : ${v(c.officier.nom)}   Badge n° : ${v(c.officier.badge)}`);
+        L.push(`Grade : ${v(c.officier.grade)}   Affectation : ${v(c.officier.affectation)}`);
         L.push('');
-        L.push('Arme de service utilisée');
-        L.push(`  Type d'arme : ${v(c.arme.type)}`);
-        L.push(`  Modèle : ${v(c.arme.modele)}`);
-        L.push(`  Calibre : ${v(c.arme.calibre)}`);
-        L.push(`  Numéro de série : ${v(c.arme.serie)}`);
-        L.push(`  Nombre de munitions tirées : ${v(c.arme.tirees)}`);
-        L.push(`  Chargeur avant / après incident : ${v(c.arme.chargeur)}`);
+        L.push('Arme de service utilisée :');
+        L.push(`- Type : ${v(c.arme.type)}`);
+        L.push(`- Modèle : ${v(c.arme.modele)}`);
+        L.push(`- Calibre : ${v(c.arme.calibre)}`);
+        L.push(`- Numéro de série : ${v(c.arme.serie)}`);
+        L.push(`- Munitions tirées (selon l'officier) : ${v(c.arme.tirees)}`);
+        L.push(`- Chargeur avant / après : ${v(c.arme.chargeur)}`);
         L.push('');
         L.push('───────────────────────────────────────────────');
-        L.push('2. OFFICIERS TÉMOINS / PRÉSENTS');
+        L.push('2. AUTRES OFFICIERS');
         L.push('───────────────────────────────────────────────');
+        L.push('Officiers ayant fait usage de la force :');
+        if (c.officiersForce.length) c.officiersForce.forEach(t => L.push(`- ${t}`));
+        else L.push('- Néant');
+        L.push('');
+        L.push('Officiers témoins (non impliqués dans le tir) :');
         if (c.temoins.length) c.temoins.forEach(t => L.push(`- ${t}`));
         else L.push('- Néant');
         L.push('');
         L.push('───────────────────────────────────────────────');
-        L.push('3. SUSPECT(S) IMPLIQUÉ(S)');
+        L.push('3. SUSPECT(S)');
         L.push('───────────────────────────────────────────────');
         L.push(`Nom (si connu) : ${v(c.suspect.nom)}`);
-        L.push(`Description physique : ${v(c.suspect.description)}`);
-        L.push(`Armé ? (Type d'arme) : ${v(c.suspect.arme)}`);
-        L.push('État après incident : '
-            + ['Blessé', 'Décédé', 'En fuite', 'Interpellé']
-                .map(e => `${OIS_CHECKBOX(c.suspect.etat === e)} ${e}`).join('  '));
+        L.push(`Description : ${v(c.suspect.description)}`);
+        L.push(`Arme (si applicable) : ${v(c.suspect.arme)}`);
+        L.push('État : ' + ['Blessé', 'Décédé', 'En fuite', 'Interpellé']
+            .map(e => `${OIS_CHECKBOX(c.suspect.etat === e)} ${e}`).join('  '));
         L.push('');
         L.push('───────────────────────────────────────────────');
-        L.push("4. CONTEXTE DE L'INTERVENTION");
+        L.push('4. CONTEXTE');
         L.push('───────────────────────────────────────────────');
-        L.push("Motif initial de l'intervention :");
-        L.push(v(c.motif));
+        L.push(`Motif de l'intervention : ${v(c.motif)}`);
         L.push('');
         L.push('───────────────────────────────────────────────');
-        L.push('5. CIRCONSTANCES DU TIR');
+        L.push('5. CIRCONSTANCES');
         L.push('───────────────────────────────────────────────');
-        // Amorce imposée par le gabarit : récit à la première personne.
-        const temoinsAmorce = c.temoins.length
-            ? c.temoins.map(t => t.split('—')[0].trim()).filter(Boolean).join(', ') + ' et moi-même'
-            : 'moi-même';
-        L.push(`« Le ${v(c.date)} à ${v(c.heure)}, je me trouvais dans la patrouille composée de `
-            + `${temoinsAmorce}, à bord du véhicule ${v(c.circonstances.vehicule)}, lorsque… »`);
+        // Amorce imposée par le gabarit, à la première personne.
+        const equipiers = c.officiersForce.concat(c.temoins)
+            .map(t => t.replace(/\s*\(.*$/, '').trim()).filter(Boolean);
+        const composition = equipiers.length ? lspdJoinFr(equipiers) : '—';
+        L.push(`Le ${v(c.date)} à ${v(c.heure)}, je me trouvais dans la patrouille composée de `
+            + `${composition}, à bord de l'unité ${v(c.circonstances.unite)}, lorsque…`);
         L.push('');
         L.push(v(c.circonstances.recit));
         L.push('');
-        L.push(`Distance approximative : ${v(c.circonstances.distance)} mètres`);
-        L.push(`Position de l'officier : ${v(c.circonstances.position)}`);
-        L.push('Sommations effectuées : '
-            + `${OIS_CHECKBOX(c.circonstances.sommations === 'Oui')} Oui  `
-            + `${OIS_CHECKBOX(c.circonstances.sommations === 'Non')} Non`);
-        L.push('Tirs ripostés par le suspect : '
-            + `${OIS_CHECKBOX(c.circonstances.riposte === 'Oui')} Oui  `
-            + `${OIS_CHECKBOX(c.circonstances.riposte === 'Non')} Non`
-            + ` — Nombre : ${v(c.circonstances.riposteNb)}`);
+        L.push('Menace perçue (comportement et actions du suspect) :');
+        L.push(v(c.circonstances.menacePercue));
+        L.push('');
+        L.push('Alternatives envisagées / tentative de désescalade :');
+        L.push(v(c.circonstances.alternatives));
+        L.push('');
+        L.push(`Distance : ${v(c.circonstances.distance)} mètres   `
+            + `Position au moment du tir : ${v(c.circonstances.position)}`);
+        L.push(`Sommations : ${ouiNon(c.circonstances.sommations)}   `
+            + `préciser : ${v(c.circonstances.sommationsPrecision)}`);
+        L.push(`Tirs ripostés par le suspect : ${ouiNon(c.circonstances.riposte)}   `
+            + `nombre : ${v(c.circonstances.riposteNb)}`);
         L.push('');
         L.push('───────────────────────────────────────────────');
         L.push('6. BLESSURES & DOMMAGES');
         L.push('───────────────────────────────────────────────');
-        L.push(`Officier(s) blessé(s) : ${v(c.dommages.officier)}`);
+        L.push(`Officier(s) blessé(s) : ${ouiNon(c.dommages.officier)} — ${v(c.dommages.officierDetail)}`);
         L.push(`Suspect(s) touché(s) : ${v(c.dommages.suspect)}`);
-        L.push(`Civil(s) touché(s) : ${v(c.dommages.civil)}`);
+        L.push(`Civil(s) touché(s) : ${ouiNon(c.dommages.civil)} — ${v(c.dommages.civilDetail)}`);
+        L.push(`Soins prodigués sur place : ${v(c.dommages.soinsPlace)}`);
         L.push(`Dommages matériels : ${v(c.dommages.materiel)}`);
         L.push('');
         L.push('───────────────────────────────────────────────');
-        L.push("7. ÉLÉMENTS FOURNIS PAR L'OFFICIER");
+        L.push('7. ACTIONS POST-INCIDENT');
         L.push('───────────────────────────────────────────────');
-        L.push("L'officier impliqué ne peut fournir que l'enregistrement de sa bodycam.");
-        L.push('Tout autre élément de preuve est collecté exclusivement par les enquêteurs');
-        L.push('du FID / IAD et les autres unités présentes.');
+        L.push(`Sécurisation de la scène : ${v(c.postIncident.securisation)}`);
+        L.push(`Témoins identifiés : ${v(c.postIncident.temoinsIdentifies)}`);
+        L.push(`Superviseur contacté : ${v(c.postIncident.superviseur)}`
+            + ` (heure : ${v(c.postIncident.superviseurHeure)})`);
         L.push('');
-        L.push(`${OIS_CHECKBOX(c.bodycam.remise === 'Oui')} Enregistrement bodycam remis — Réf. : ${v(c.bodycam.ref)}`);
-        L.push(`Heure de début / fin de l'enregistrement : ${v(c.bodycam.heures)}`);
-        L.push("Note : l'arme de service de l'officier est saisie par le FID/IAD pour expertise balistique.");
+        L.push('───────────────────────────────────────────────');
+        L.push("8. ÉLÉMENTS FOURNIS PAR L'OFFICIER");
+        L.push('───────────────────────────────────────────────');
+        L.push(`${OIS_CHECKBOX(c.bodycam.remise === 'Oui')} Enregistrement bodycam remis — réf. : ${v(c.bodycam.ref)}`
+            + ` (début / fin : ${v(c.bodycam.heures)})`);
+        L.push(`${OIS_CHECKBOX(c.bodycam.rapportDetaille === 'Oui')} Présent rapport détaillé`);
         L.push('');
-        L.push(`Signature de l'officier : _______________    Date : ${v(c.date)}`);
+        L.push("La bodycam constitue une pièce de preuve importante mais non exclusive. Le présent");
+        L.push("rapport reste la déclaration principale de l'officier. La collecte des autres éléments");
+        L.push("(arme du suspect, douilles, CCTV, photos de scène, témoignages) est assurée par");
+        L.push("l'équipe d'enquête désignée.");
+        L.push("L'arme de service de l'officier est remise aux enquêteurs pour expertise balistique.");
+        L.push("Une arme de remplacement lui est attribuée.");
         L.push('');
-        L.push("Rappel procédure : après un OIS, l'officier remet immédiatement sa bodycam au");
-        L.push("superviseur sur place et son arme de service au FID/IAD. Il ne touche à rien");
-        L.push("d'autre sur la scène.");
+        L.push('───────────────────────────────────────────────');
+        L.push(`Enquête pénale (usage de la force) — unité : ${v(c.enquetes.penale)}`);
+        L.push(`Enquête administrative (respect des procédures) — unité : ${v(c.enquetes.administrative)}`);
+        L.push('');
+        L.push('Note : les deux enquêtes sont menées séparément. La déclaration administrative de');
+        L.push("l'officier ne peut être utilisée dans le volet pénal.");
+        L.push('');
+        L.push(`Signature de l'officier : ______________________   Date : ${v(c.date)}`);
 
         return sanitizeRadioCodes(L.join('\n'));
     }
 
-    // Complétude propre au rapport OIS : le gabarit du FID attend ces
-    // rubriques renseignées, faute de quoi l'audition portera dessus.
+    // Complétude propre au rapport OIS : le gabarit attend ces rubriques
+    // renseignées, faute de quoi l'audition portera dessus.
     function oisEvaluate() {
         const c = oisContext();
         const items = [
             ['dossier', 'Numéro de dossier', !!c.dossier],
             ['datetime', "Date et heure de l'incident", !!(c.date && c.heure)],
-            ['lieu', 'Lieu de l\'incident', !!c.lieu],
-            ['officier', 'Identité, badge et grade de l\'officier', !!(c.officier.nom && c.officier.badge && c.officier.grade)],
-            ['division', 'Division / affectation', !!c.officier.division],
+            ['lieu', "Lieu de l'incident", !!c.lieu],
+            ['meteo', 'Conditions météo / luminosité', !!c.meteo],
+            ['officier', "Identité, badge et grade de l'officier", !!(c.officier.nom && c.officier.badge && c.officier.grade)],
+            ['affectation', 'Affectation', !!c.officier.affectation],
             ['arme', 'Arme de service — type, modèle, calibre, série', !!(c.arme.type && c.arme.modele && c.arme.calibre && c.arme.serie)],
             ['munitions', 'Munitions tirées et état du chargeur', !!(c.arme.tirees && c.arme.chargeur)],
-            ['temoins', 'Officiers témoins / présents', c.temoins.length > 0],
+            ['autres_officiers', 'Autres officiers — usage de la force ou témoins',
+                c.officiersForce.length > 0 || c.temoins.length > 0],
             ['suspect', 'Identité ou description du suspect', !!(c.suspect.nom || c.suspect.description)],
-            ['suspect_arme', 'Suspect armé — type d\'arme', !!c.suspect.arme],
-            ['suspect_etat', 'État du suspect après incident', !!c.suspect.etat],
-            ['motif', "Motif initial de l'intervention", !!c.motif],
-            ['recit', 'Récit factuel et chronologique du tir', c.circonstances.recit.length > 40],
-            ['vehicule', "Véhicule et indicatif d'unité", !!c.circonstances.vehicule],
+            ['suspect_arme', 'Arme du suspect', !!c.suspect.arme],
+            ['suspect_etat', 'État du suspect', !!c.suspect.etat],
+            ['motif', "Motif de l'intervention", !!c.motif],
+            ['unite', "Indicatif de l'unité", !!c.circonstances.unite],
+            ['recit', 'Récit factuel et chronologique', c.circonstances.recit.length > 40],
+            ['menace', 'Menace perçue au moment du tir', c.circonstances.menacePercue.length > 20],
+            ['alternatives', 'Alternatives envisagées / désescalade', c.circonstances.alternatives.length > 20],
             ['distance', 'Distance approximative', !!c.circonstances.distance],
             ['position', "Position de l'officier au moment du tir", !!c.circonstances.position],
-            ['sommations', 'Sommations effectuées', !!c.circonstances.sommations],
+            ['sommations', 'Sommations effectuées',
+                c.circonstances.sommations === 'Oui' ? !!c.circonstances.sommationsPrecision : !!c.circonstances.sommations],
             ['riposte', 'Tirs ripostés par le suspect', !!c.circonstances.riposte],
-            ['dommages', 'Blessures et dommages', !!(c.dommages.officier && c.dommages.suspect)],
-            ['bodycam', 'Bodycam remise et référencée', c.bodycam.remise === 'Oui' ? !!c.bodycam.ref : !!c.bodycam.remise],
-            ['bodycam_heures', "Heures de début et de fin de l'enregistrement", !!c.bodycam.heures]
+            ['blessures_officier', 'Officier(s) blessé(s)', !!c.dommages.officier],
+            ['blessures_suspect', 'Suspect(s) touché(s)', !!c.dommages.suspect],
+            ['blessures_civil', 'Civil(s) touché(s)', !!c.dommages.civil],
+            ['soins', 'Soins prodigués sur place', !!c.dommages.soinsPlace],
+            ['dommages_materiels', 'Dommages matériels', !!c.dommages.materiel],
+            ['securisation', 'Sécurisation de la scène', !!c.postIncident.securisation],
+            ['temoins_identifies', 'Témoins identifiés', !!c.postIncident.temoinsIdentifies],
+            ['superviseur', 'Superviseur contacté et heure',
+                !!(c.postIncident.superviseur && c.postIncident.superviseurHeure)],
+            ['bodycam', 'Bodycam remise et référencée',
+                c.bodycam.remise === 'Oui' ? !!c.bodycam.ref : !!c.bodycam.remise],
+            ['bodycam_heures', "Début et fin de l'enregistrement", !!c.bodycam.heures],
+            ['rapport_detaille', 'Présent rapport détaillé joint', !!c.bodycam.rapportDetaille],
+            ['enquete_penale', "Unité chargée de l'enquête pénale", !!c.enquetes.penale],
+            ['enquete_admin', "Unité chargée de l'enquête administrative", !!c.enquetes.administrative]
         ].map(([id, label, ok]) => ({ id, label, status: ok ? 'ok' : 'missing' }));
 
         const missing = items.filter(i => i.status === 'missing');
@@ -6460,11 +6517,13 @@
             if ($('#oisOffNom') && !$('#oisOffNom').value) $('#oisOffNom').value = a.name || '';
             if ($('#oisOffGrade') && !$('#oisOffGrade').value) $('#oisOffGrade').value = a.grade || '';
             if ($('#oisOffBadge') && !$('#oisOffBadge').value) $('#oisOffBadge').value = a.matricule || '';
+            if ($('#oisOffAffectation') && !$('#oisOffAffectation').value) $('#oisOffAffectation').value = 'Patrol Division';
             oisRender();
         }, 0));
 
         // Sélecteurs à choix unique.
-        ['oisSuspectEtat', 'oisSommations', 'oisRiposte', 'oisBodycam'].forEach(id => {
+        ['oisSuspectEtat', 'oisSommations', 'oisRiposte', 'oisBodycam',
+         'oisOffBlesse', 'oisCivilTouche', 'oisRapportDetaille'].forEach(id => {
             const c = $('#' + id);
             if (!c) return;
             c.addEventListener('click', e => {

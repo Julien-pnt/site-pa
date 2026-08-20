@@ -373,10 +373,11 @@
     // Points de procédure interne, sans article de loi : ils viennent du
     // règlement du département, rappelé en pied du gabarit OIS.
     var PROCEDURE_INTERNE = {
-        bodycam: 'Procédure interne LSPD — remise immédiate de la bodycam au superviseur sur place',
-        arme: "Procédure interne LSPD — arme de service saisie par le FID/IAD pour expertise balistique",
-        scene: "Procédure interne LSPD — l'officier impliqué ne touche à aucun autre élément de la scène",
-        preuves: "Procédure interne LSPD — collecte des preuves réservée aux enquêteurs FID/IAD"
+        bodycam: "Procédure interne LSPD — la bodycam est une pièce importante mais non exclusive ; le rapport reste la déclaration principale de l'officier",
+        arme: "Procédure interne LSPD — arme de service remise aux enquêteurs pour expertise balistique, arme de remplacement attribuée",
+        scene: 'Procédure interne LSPD — sécurisation de la scène et contact du superviseur après le tir',
+        preuves: "Procédure interne LSPD — collecte des autres éléments assurée par l'équipe d'enquête désignée",
+        separation: "Procédure interne LSPD — enquête pénale et enquête administrative menées séparément ; la déclaration administrative ne peut être utilisée dans le volet pénal"
     };
 
     function iadPoint(phase, question, opts) {
@@ -395,9 +396,10 @@
 
     function buildIadDoc(ctx, evaluation) {
         var points = [];
-        var manquant = function (id) {
-            return (evaluation.missing || []).some(function (m) { return m.id === id; });
-        };
+        var nbForce = (ctx.officiersForce || []).length;
+        var nbTemoins = (ctx.temoins || []).length;
+        var post = ctx.postIncident || {};
+        var enq = ctx.enquetes || {};
 
         // ─── Fondement légal du tir ───
         points.push(ctx.circonstances.sommations === 'Oui'
@@ -405,9 +407,14 @@
                 "Avez-vous adressé une sommation avant de faire feu, et laquelle ?",
                 {
                     articles: ['penal:123'],
-                    reponse: "Le rapport indique que des sommations ont été effectuées.",
-                    aFaire: "Tenez-vous prêt à restituer les termes exacts employés et le délai laissé au suspect.",
-                    severity: 'ok'
+                    reponse: 'Sommations effectuées'
+                        + (ctx.circonstances.sommationsPrecision
+                            ? ' : « ' + ctx.circonstances.sommationsPrecision + ' ».'
+                            : ', sans précision consignée.'),
+                    aFaire: ctx.circonstances.sommationsPrecision
+                        ? 'Tenez-vous prêt à restituer le délai laissé au suspect entre la sommation et le tir.'
+                        : 'Le gabarit demande de préciser les sommations : restituez les termes exacts employés.',
+                    severity: ctx.circonstances.sommationsPrecision ? 'ok' : 'warn'
                 })
             : iadPoint("Fondement légal du tir",
                 "Aucune sommation n'est mentionnée : qu'est-ce qui vous en a empêché ?",
@@ -433,6 +440,32 @@
                     ? "Rattachez explicitement votre récit à l'un des cinq cas : le FID vous demandera lequel."
                     : "Sans récit circonstancié, l'usage de l'arme est présumé injustifié. Rédigez-le avant l'audition.",
                 severity: ctx.circonstances.recit ? 'warn' : 'fail'
+            }));
+
+        points.push(iadPoint('Fondement légal du tir',
+            "Décrivez précisément la menace que vous perceviez à l'instant de la décision de tirer.",
+            {
+                articles: ['penal:123', 'penal:121'],
+                reponse: ctx.circonstances.menacePercue || '',
+                manque: ctx.circonstances.menacePercue ? '' : "La menace perçue n'est pas décrite.",
+                aFaire: ctx.circonstances.menacePercue
+                    ? "Attendez-vous à ce que la bodycam soit confrontée à cette description, image par image."
+                    : "C'est le point central du rapport : sans description du comportement et des actions "
+                        + "du suspect à cet instant, la nécessité absolue de l'Art. 123 n'est pas établie.",
+                severity: ctx.circonstances.menacePercue ? 'warn' : 'fail'
+            }));
+
+        points.push(iadPoint('Fondement légal du tir',
+            "Quelles alternatives avez-vous envisagées avant de faire feu, et pourquoi les avoir écartées ?",
+            {
+                articles: ['penal:123', 'penal:121'],
+                reponse: ctx.circonstances.alternatives || '',
+                manque: ctx.circonstances.alternatives ? '' : "Aucune alternative ni tentative de désescalade n'est consignée.",
+                aFaire: ctx.circonstances.alternatives ? ''
+                    : "L'Art. 123 subordonne l'usage de l'arme à l'absolue nécessité : il faut établir "
+                        + "qu'aucun autre moyen ne pouvait être employé. Documentez injonctions, mise à "
+                        + "couvert, repli ou moyens intermédiaires, et ce qui les a rendus inopérants.",
+                severity: ctx.circonstances.alternatives ? 'ok' : 'fail'
             }));
 
         points.push(iadPoint("Fondement légal du tir",
@@ -479,8 +512,10 @@
                 manque: (ctx.arme.tirees && ctx.arme.chargeur) ? ''
                     : 'Nombre de coups tirés ou état du chargeur non renseigné.',
                 aFaire: (ctx.arme.tirees && ctx.arme.chargeur)
-                    ? "L'expertise balistique recomptera les douilles : tout écart devra être expliqué."
-                    : "Le décompte sera confronté à l'expertise balistique. Renseignez-le avant l'audition.",
+                    ? "Ce nombre est celui que VOUS déclarez : les enquêteurs le vérifieront par le "
+                        + "recomptage des douilles et l'expertise balistique. Tout écart devra être expliqué."
+                    : "Le décompte que vous déclarez sera confronté à l'expertise balistique. "
+                        + "Renseignez-le avant l'audition.",
                 severity: (ctx.arme.tirees && ctx.arme.chargeur) ? 'warn' : 'fail'
             }));
 
@@ -515,25 +550,39 @@
             }));
 
         points.push(iadPoint('Preuves et procédure interne',
-            "Avez-vous touché à des éléments de la scène après le tir ?",
+            "Qu'avez-vous fait immédiatement après le tir : scène sécurisée, superviseur prévenu ?",
             {
                 reference: PROCEDURE_INTERNE.scene,
-                reponse: "Le gabarit rappelle que l'officier impliqué ne collecte aucun élément.",
-                aFaire: "Confirmez que douilles, arme du suspect et CCTV ont été laissés aux enquêteurs. "
-                    + "Toute manipulation vous serait reprochée.",
-                severity: 'warn'
+                reponse: post.securisation
+                    ? 'Sécurisation : ' + post.securisation + '.'
+                        + (post.superviseur
+                            ? ' Superviseur ' + post.superviseur
+                                + (post.superviseurHeure ? ' contacté à ' + post.superviseurHeure : ' contacté') + '.'
+                            : '')
+                    : '',
+                manque: post.securisation ? '' : "Les actions post-incident ne sont pas consignées.",
+                aFaire: (post.securisation && post.superviseur && post.superviseurHeure) ? ''
+                    : "Renseignez la sécurisation de la scène et l'heure de contact du superviseur : "
+                        + "c'est le premier point vérifié par le volet administratif.",
+                severity: (post.securisation && post.superviseur) ? 'ok' : 'warn'
             }));
 
         points.push(iadPoint('Preuves et procédure interne',
             "Qui d'autre était présent et peut corroborer votre récit ?",
             {
                 reference: PROCEDURE_INTERNE.preuves,
-                reponse: (ctx.temoins && ctx.temoins.length)
-                    ? ctx.temoins.length + ' officier(s) témoin(s) consigné(s).' : '',
-                manque: (ctx.temoins && ctx.temoins.length) ? '' : 'Aucun officier témoin consigné.',
-                aFaire: (ctx.temoins && ctx.temoins.length) ? ''
-                    : "Sans témoin identifié, votre récit reposera sur la seule bodycam.",
-                severity: (ctx.temoins && ctx.temoins.length) ? 'ok' : 'warn'
+                reponse: (nbForce || nbTemoins)
+                    ? nbForce + ' officier(s) ayant fait usage de la force et '
+                        + nbTemoins + ' témoin(s) non impliqué(s) consigné(s).'
+                        + (ctx.postIncident && ctx.postIncident.temoinsIdentifies
+                            ? ' Témoins civils : ' + ctx.postIncident.temoinsIdentifies + '.' : '')
+                    : '',
+                manque: (nbForce || nbTemoins) ? '' : 'Aucun autre officier consigné.',
+                aFaire: (nbForce || nbTemoins)
+                    ? "Le gabarit sépare ceux qui ont fait usage de la force des simples témoins : "
+                        + "vérifiez que chacun est dans la bonne liste, ils ne seront pas entendus de la même façon."
+                    : "Sans autre officier identifié, votre récit reposera sur la seule bodycam.",
+                severity: (nbForce || nbTemoins) ? 'ok' : 'warn'
             }));
 
         // ─── Suites ───
@@ -553,6 +602,33 @@
             }));
 
         points.push(iadPoint('Suites immédiates',
+            "Quels soins avez-vous prodigués sur place avant l'arrivée des secours ?",
+            {
+                articles: ['proc:2-4-1'],
+                reponse: ctx.dommages.soinsPlace || '',
+                manque: ctx.dommages.soinsPlace ? '' : "Aucun soin prodigué sur place n'est consigné.",
+                aFaire: ctx.dommages.soinsPlace ? ''
+                    : "Renseignez-le, même s'il s'agit d'une abstention justifiée : l'absence de mention "
+                        + "sera lue comme une absence de secours.",
+                severity: ctx.dommages.soinsPlace ? 'ok' : 'warn'
+            }));
+
+        points.push(iadPoint('Séparation des enquêtes',
+            "Savez-vous laquelle de vos déclarations relève du volet pénal et laquelle du volet administratif ?",
+            {
+                reference: PROCEDURE_INTERNE.separation,
+                reponse: (enq.penale || enq.administrative)
+                    ? 'Enquête pénale : ' + (enq.penale || '\u2014')
+                        + '. Enquête administrative : ' + (enq.administrative || '\u2014') + '.'
+                    : '',
+                manque: (enq.penale && enq.administrative) ? ''
+                    : "Les unités chargées des deux volets ne sont pas toutes désignées.",
+                aFaire: "Les deux enquêtes sont menées séparément : votre déclaration administrative ne "
+                    + "peut pas être utilisée dans le volet pénal. Sachez devant qui vous parlez.",
+                severity: (enq.penale && enq.administrative) ? 'warn' : 'fail'
+            }));
+
+        points.push(iadPoint('Suites immédiates',
             "Des civils ou des biens ont-ils été touchés ?",
             {
                 reponse: (ctx.dommages.civil || ctx.dommages.materiel)
@@ -567,8 +643,11 @@
         // ─── Rubriques du gabarit encore vides ───
         (evaluation.missing || []).forEach(function (m) {
             if (['recit', 'sommations', 'riposte', 'bodycam', 'bodycam_heures',
-                 'arme', 'munitions', 'suspect_arme', 'suspect_etat', 'temoins',
-                 'distance', 'position'].indexOf(m.id) !== -1) return;   // déjà couvert
+                 'arme', 'munitions', 'suspect_arme', 'suspect_etat', 'autres_officiers',
+                 'distance', 'position', 'menace', 'alternatives', 'soins',
+                 'securisation', 'superviseur', 'temoins_identifies',
+                 'enquete_penale', 'enquete_admin', 'blessures_civil',
+                 'dommages_materiels'].indexOf(m.id) !== -1) return;   // déjà couvert
             points.push(iadPoint('Rubriques du gabarit',
                 'Pourquoi le rapport ne renseigne-t-il pas : ' + m.label.toLowerCase() + ' ?',
                 {
@@ -579,7 +658,8 @@
         });
 
         var ordre = ['Fondement légal du tir', 'Menace et riposte', 'Arme de service et munitions',
-                     'Preuves et procédure interne', 'Suites immédiates', 'Rubriques du gabarit'];
+                     'Preuves et procédure interne', 'Suites immédiates', 'Séparation des enquêtes',
+                     'Rubriques du gabarit'];
         var parPhase = {};
         points.forEach(function (p) { (parPhase[p.phase] = parPhase[p.phase] || []).push(p); });
 

@@ -140,29 +140,45 @@ function pilote() {
             oisDossier: 'OIS-2026-0007',
             oisDatetime: '2026-08-08T23:12',
             oisLieu: 'San Andreas Avenue',
+            oisMeteo: 'nuit, pluie fine, éclairage public partiel',
             oisOffNom: 'MENDES Ignacio', oisOffBadge: '1004',
-            oisOffGrade: 'Police Officer II', oisOffDivision: 'Patrol Division',
+            oisOffGrade: 'Police Officer II', oisOffAffectation: 'Patrol Division',
             oisArmeType: 'Pistolet', oisArmeModele: 'Glock 17',
             oisArmeCalibre: '9mm', oisArmeSerie: '1784832418171',
             oisMunitionsTirees: '3', oisChargeur: '17 / 14',
-            oisTemoins: 'COLE Ethan — 1102 — couverture\\nMCCOY Jesse — 2001 — négociation',
+            oisOfficiersForce: 'COLE Ethan (1102 — tirs de couverture)',
+            oisTemoins: 'MCCOY Jesse (2001 — négociation)',
             oisSuspectNom: 'LOTARE Lucie',
             oisSuspectDesc: 'femme, 1m70, veste sombre',
-            oisSuspectArme: 'oui — Glock 17 modifié (switch)',
+            oisSuspectArme: 'Glock 17 modifié (switch)',
             oisMotif: 'appel du dispatch signalant des coups de feu',
-            oisVehicule: 'Vapid Scout — 14A56',
+            oisUnite: '14A56',
             oisDistance: '8', oisPosition: 'à couvert derrière le véhicule de service',
             oisRiposteNb: '2',
+            oisSommationsPrecision: '« Police, lâchez votre arme », à deux reprises',
             oisRecit: "À notre arrivée, l'individu a fait feu en direction de notre position. Après sommation restée sans effet, j'ai fait usage de mon arme de service à trois reprises.",
-            oisOffBlesse: 'Non', oisSuspectTouche: '1 impact, bras droit',
-            oisCivilTouche: 'Non', oisDommages: 'pare-brise du véhicule de service',
-            oisBodycamRef: 'BC-2026-0812', oisBodycamHeures: '23:00 — 23:35'
+            oisMenacePercue: "L'individu a braqué son arme dans ma direction à moins de dix mètres, en position de tir.",
+            oisAlternatives: "Injonctions verbales à deux reprises, mise à couvert derrière le véhicule ; aucun moyen intermédiaire disponible face à une arme à feu.",
+            oisOffBlesseDetail: 'aucune blessure',
+            oisSuspectTouche: '1 impact, bras droit',
+            oisCivilToucheDetail: 'néant',
+            oisSoinsPlace: 'compression de la plaie en attendant le LSFD',
+            oisDommages: 'pare-brise du véhicule de service',
+            oisSecurisationScene: 'périmètre établi, circulation détournée',
+            oisTemoinsIdentifies: 'deux passants, coordonnées relevées',
+            oisSuperviseur: 'Sergeant I GRAVES Logan', oisSuperviseurHeure: '23h18',
+            oisBodycamRef: 'BC-2026-0812', oisBodycamHeures: '23:00 / 23:35',
+            oisEnquetePenale: 'Force Investigation Division',
+            oisEnqueteAdmin: 'Internal Affairs Division'
         };
         Object.keys(ois).forEach(function (k) { set('#' + k, ois[k]); });
         tag('#oisSuspectEtat', 'Interpellé');
         tag('#oisSommations', 'Oui');
         tag('#oisRiposte', 'Oui');
         tag('#oisBodycam', 'Oui');
+        tag('#oisRapportDetaille', 'Oui');
+        tag('#oisOffBlesse', 'Non');
+        tag('#oisCivilTouche', 'Non');
 
         out.push('OIS_SCORE ' + (($('#oisCompleteness .cp-score') || {}).textContent || '?').trim());
         out.push('<<<<OIS>>>>'); out.push($('#ois-preview').value); out.push('<<<<FIN>>>>');
@@ -260,44 +276,68 @@ verifie('toutes les rubriques du gabarit sont renseignables',
 
 // Rubriques attendues, reprises de docs/template-ois.md.
 const RUBRIQUES = [
+    ['en-tête du rapport', /RAPPORT OIS — OFFICER INVOLVED SHOOTING/],
     ['numéro de dossier', /Numéro de dossier : OIS-2026-0007/],
-    ["date de l'incident", /Date de l'incident : 08\/08\/2026/],
-    ["heure de l'incident", /Heure de l'incident : 23h12/],
-    ['lieu', /Lieu : San Andreas Avenue/],
+    ["date, heure et lieu sur une ligne", /Date de l'incident : 08\/08\/2026\s+Heure : 23h12\s+Lieu : San Andreas Avenue/],
+    ['conditions météo / luminosité', /Conditions météo \/ luminosité : nuit, pluie fine/],
     ['1 · officier impliqué', /1\. OFFICIER IMPLIQUÉ/],
-    ['identité, badge, grade, division', /Badge n° : 1004[\s\S]*Division \/ Affectation : Patrol Division/],
-    ['arme — type, modèle, calibre, série', /Type d'arme : Pistolet[\s\S]*Numéro de série : 1784832418171/],
-    ['munitions tirées et chargeur', /munitions tirées : 3[\s\S]*Chargeur avant \/ après incident : 17 \/ 14/],
-    ['2 · officiers témoins', /2\. OFFICIERS TÉMOINS \/ PRÉSENTS[\s\S]*COLE Ethan/],
-    ['3 · suspect', /3\. SUSPECT\(S\) IMPLIQUÉ\(S\)[\s\S]*LOTARE Lucie/],
+    ['nom, badge, grade, affectation', /Badge n° : 1004[\s\S]*Affectation : Patrol Division/],
+    ['arme — type, modèle, calibre, série', /- Type : Pistolet[\s\S]*- Numéro de série : 1784832418171/],
+    ["munitions tirées « selon l'officier »", /- Munitions tirées \(selon l'officier\) : 3/],
+    ['chargeur avant / après', /- Chargeur avant \/ après : 17 \/ 14/],
+    ['2 · autres officiers', /2\. AUTRES OFFICIERS/],
+    ['officiers ayant fait usage de la force', /Officiers ayant fait usage de la force :[\s\S]*COLE Ethan \(1102/],
+    ['officiers témoins non impliqués', /Officiers témoins \(non impliqués dans le tir\) :[\s\S]*MCCOY Jesse/],
+    ['3 · suspect', /3\. SUSPECT\(S\)[\s\S]*LOTARE Lucie/],
+    ['arme du suspect', /Arme \(si applicable\) : Glock 17 modifié/],
     ['état du suspect coché', /☑ Interpellé/],
-    ['4 · contexte', /4\. CONTEXTE DE L'INTERVENTION/],
-    ['5 · circonstances du tir', /5\. CIRCONSTANCES DU TIR/],
-    ['amorce du récit imposée', /je me trouvais dans la patrouille composée de/],
-    ['distance et position', /Distance approximative : 8 mètres[\s\S]*Position de l'officier : à couvert/],
-    ['sommations cochées', /Sommations effectuées : ☑ Oui/],
-    ['riposte du suspect', /Tirs ripostés par le suspect : ☑ Oui.*Nombre : 2/],
-    ['6 · blessures et dommages', /6\. BLESSURES & DOMMAGES[\s\S]*pare-brise/],
-    ['7 · éléments fournis', /7\. ÉLÉMENTS FOURNIS PAR L'OFFICIER/],
-    ['restriction bodycam rappelée', /ne peut fournir que l'enregistrement de sa bodycam/],
-    ['bodycam cochée et référencée', /☑ Enregistrement bodycam remis — Réf\. : BC-2026-0812/],
-    ['heures d\'enregistrement', /23:00 — 23:35/],
-    ['saisie de l\'arme par le FID', /saisie par le FID\/IAD pour expertise balistique/],
-    ['signature', /Signature de l'officier/],
-    ['rappel de procédure', /remet immédiatement sa bodycam au/]
+    ['4 · contexte', /4\. CONTEXTE[\s\S]*Motif de l'intervention :/],
+    ['5 · circonstances', /5\. CIRCONSTANCES/],
+    ["amorce du récit à l'unité", /je me trouvais dans la patrouille composée de[\s\S]*à bord de l'unité 14A56, lorsque/],
+    ['menace perçue', /Menace perçue \(comportement et actions du suspect\) :[\s\S]*braqué son arme/],
+    ['alternatives / désescalade', /Alternatives envisagées \/ tentative de désescalade :[\s\S]*Injonctions verbales/],
+    ['distance et position', /Distance : 8 mètres\s+Position au moment du tir : à couvert/],
+    ['sommations cochées et précisées', /Sommations : ☑ Oui.*préciser : « Police, lâchez votre arme »/],
+    ['riposte du suspect', /Tirs ripostés par le suspect : ☑ Oui.*nombre : 2/],
+    ['6 · blessures et dommages', /6\. BLESSURES & DOMMAGES/],
+    ['officier blessé coché', /Officier\(s\) blessé\(s\) : ☐ Oui\s+☑ Non — aucune blessure/],
+    ['civil touché coché', /Civil\(s\) touché\(s\) : ☐ Oui\s+☑ Non — néant/],
+    ['soins prodigués sur place', /Soins prodigués sur place : compression de la plaie/],
+    ['dommages matériels', /Dommages matériels : pare-brise/],
+    ['7 · actions post-incident', /7\. ACTIONS POST-INCIDENT/],
+    ['sécurisation de la scène', /Sécurisation de la scène : périmètre établi/],
+    ['témoins identifiés', /Témoins identifiés : deux passants/],
+    ['superviseur contacté et heure', /Superviseur contacté : Sergeant I GRAVES Logan \(heure : 23h18\)/],
+    ['8 · éléments fournis', /8\. ÉLÉMENTS FOURNIS PAR L'OFFICIER/],
+    ['bodycam cochée, réf. et horaires', /☑ Enregistrement bodycam remis — réf\. : BC-2026-0812 \(début \/ fin : 23:00 \/ 23:35\)/],
+    ['présent rapport détaillé coché', /☑ Présent rapport détaillé/],
+    ['bodycam non exclusive', /pièce de preuve importante mais non exclusive/],
+    ['rapport = déclaration principale', /reste la déclaration principale de l'officier/],
+    ["collecte par l'équipe d'enquête", /assurée par[\s\S]*équipe d'enquête désignée/],
+    ['arme de remplacement attribuée', /Une arme de remplacement lui est attribuée/],
+    ['unité enquête pénale', /Enquête pénale \(usage de la force\) — unité : Force Investigation Division/],
+    ['unité enquête administrative', /Enquête administrative \(respect des procédures\) — unité : Internal Affairs Division/],
+    ['note de séparation des enquêtes', /ne peut être utilisée dans le volet pénal/],
+    ['signature', /Signature de l'officier/]
 ];
 RUBRIQUES.forEach(([label, re]) => verifie(label, re.test(oisTexte)));
 
 console.log('');
 console.log('═══ FICHE D\'AUDITION FID / IAD ═══');
-verifie('le titre de la modale change', /FID\/IAD/.test(ligne('IAD_TITRE')), ligne('IAD_TITRE'));
+verifie("le titre de la modale bascule sur l'audition", /audition/i.test(ligne('IAD_TITRE')), ligne('IAD_TITRE'));
 verifie('la fiche est produite', iad.length > 400, iad.slice(0, 120));
 verifie("elle cite l'Art. 123", /Art\. 123/.test(iad));
 verifie('elle cite une procédure interne', /Procédure interne LSPD/.test(iad));
 verifie('elle interroge sur les sommations', /sommation/i.test(iad));
 verifie('elle interroge sur la bodycam', /bodycam/i.test(iad));
 verifie('elle interroge sur le décompte des munitions', /coups avez-vous tirés/i.test(iad));
-verifie('elle interroge sur la scène', /touché à des éléments de la scène/i.test(iad));
+verifie('elle interroge sur la menace perçue', /menace que vous perceviez/i.test(iad));
+verifie('elle interroge sur les alternatives / désescalade', /alternatives avez-vous envisagées/i.test(iad));
+verifie('elle interroge sur les actions post-incident', /scène sécurisée, superviseur prévenu/i.test(iad));
+verifie('elle interroge sur les soins prodigués', /soins avez-vous prodigués/i.test(iad));
+verifie('elle traite la séparation pénal / administratif', /volet administratif/i.test(iad));
+verifie('elle ne parle plus de « FID/IAD » comme guichet unique',
+    !/collecte des preuves réservée aux enquêteurs FID\/IAD/i.test(iad));
 verifie('elle ne contient pas la réponse interne', iad.indexOf(MARQUEUR_INTERNE) === -1);
 
 if (process.argv.includes('--print')) {
